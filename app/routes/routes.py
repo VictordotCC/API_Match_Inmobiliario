@@ -9,3 +9,7 @@ def index():
 @app.route('/about')
 def about():
     return jsonify({'message': 'About page'})
+
+
+#Ejemplo QUERY JSON field:
+# data = Target.query.order_by(Target.product['salesrank'])
