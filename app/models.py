@@ -1,12 +1,13 @@
 from sqlalchemy.dialects.postgresql import JSON
 from app import db
 
+from geoalchemy2 import Geometry
 import datetime
 
 
-class User(db.Model):
-    __tablename__ = 'user'
-    id_user = db.Column(db.String(10), primary_key=True)
+class Usuario(db.Model):
+    __tablename__ = 'usuario'
+    id_usuario = db.Column(db.String(10), primary_key=True)
     correo = db.Column(db.String(50), unique=True, nullable=False)
     clave = db.Column(db.String(50), nullable=False)
     tipo_usuario = db.Column(db.String(20), nullable=True)
@@ -18,14 +19,14 @@ class User(db.Model):
     imagen = db.Column(db.String(100), nullable=True)
     links_contacto = db.Column(JSON, nullable=True)
 
-    idx_user_correo = db.Index('idx_user_correo', correo)
+    idx_usuario_correo = db.Index('idx_usuario_correo', correo)
 
     def __repr__(self):
-        return f'<User {self.correo}>'
+        return f'<Usuario {self.correo}>'
     
     def serialize(self):
         return {
-            'id': self.id_user,
+            'id': self.id_usuario,
             'correo': self.correo,
             'tipo_usuario': self.tipo_usuario,
             'activo': self.activo,
@@ -68,9 +69,9 @@ class Preferencia(db.Model):
     busqueda_automatica = db.Column(db.Boolean, nullable=True)
     distancia = db.Column(db.Float, nullable=True)
     contactado = db.Column(db.Boolean, nullable=False, default=True)
-    id_user = db.Column(db.String(10), db.ForeignKey('user.id_user'), nullable=False)
+    id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
 
-    idx_preferencia_id_user = db.Index('idx_preferencia_id_user', id_user)
+    idx_preferencia_id_usuario = db.Index('idx_preferencia_id_usuario', id_usuario)
     idx_preferencia_distancia = db.Index('idx_preferencia_distancia', distancia)
 
     def __repr__(self):
@@ -96,7 +97,7 @@ class Preferencia(db.Model):
             'busqueda_automatica': self.busqueda_automatica,
             'distancia': self.distancia,
             'contactado': self.contactado,
-            'id_user': self.id_user
+            'id_usuario': self.id_usuario
         }
 
     def save(self):
@@ -238,6 +239,7 @@ class Vivienda(db.Model):
     area_construida = db.Column(db.Float, nullable=True)
     latitud = db.Column(db.Float, nullable=False)
     longitud = db.Column(db.Float, nullable=False)
+    ubicacion = db.Column(Geometry(geometry_type='POINT', srid=4326), nullable=False)
     tipo_subsidio = db.Column(db.String(15), nullable=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     links_contacto = db.Column(JSON, nullable=True)
@@ -247,8 +249,7 @@ class Vivienda(db.Model):
     id_region = db.Column(db.Integer, db.ForeignKey('vecindario.id_region'), nullable=False)
 
     idx_vivienda_id_vecindario = db.Index('idx_vivienda_id_vecindario', id_vecindario)
-    idx_vivienda_latitud = db.Index('idx_vivienda_latitud', latitud)
-    idx_vivienda_longitud = db.Index('idx_vivienda_longitud', longitud)
+    idx_vivienda_ubicacion = db.Index('idx_vivienda_ubicacion', ubicacion)
 
     def __repr__(self):
         return f'<Vivienda {self.nombre_propiedad}>'
@@ -323,10 +324,10 @@ class Favorito(db.Model):
     __tablename__ = 'favorito'
     id_favorito = db.Column(db.String(5), primary_key=True)
     fecha_guardado = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
-    id_user = db.Column(db.String(10), db.ForeignKey('user.id_user'), nullable=False)
+    id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
     id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
-    idx_favorito_id_user = db.Index('idx_favorito_id_user', id_user)
+    idx_favorito_id_usuario = db.Index('idx_favorito_id_usuario', id_usuario)
     idx_favorito_id_vivienda = db.Index('idx_favorito_id_vivienda', id_vivienda)
 
     def __repr__(self):
@@ -335,7 +336,7 @@ class Favorito(db.Model):
     def serialize(self):
         return {
             'id': self.id_favorito,
-            'id_user': self.id_user,
+            'id_usuario': self.id_usuario,
             'fecha_guardado': self.fecha_guardado.strftime('%d-%m-%Y %H:%M:%S'),
             'id_vivienda': self.id_vivienda
         }
@@ -356,10 +357,10 @@ class Match(db.Model):
     id_match = db.Column(db.String(5), primary_key=True)
     fecha_coincidencia = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     visto = db.Column(db.Boolean, nullable=False, default=False)
-    id_user = db.Column(db.String(10), db.ForeignKey('user.id_user'), nullable=False)
+    id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
     id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
-    idx_favorito_id_user = db.Index('idx_favorito_id_user', id_user)
+    idx_favorito_id_usuario = db.Index('idx_favorito_id_usuario', id_usuario)
     idx_favorito_id_vivienda = db.Index('idx_favorito_id_vivienda', id_vivienda)
     
     def __repr__(self):
@@ -368,7 +369,7 @@ class Match(db.Model):
     def serialize(self):
         return {
             'id': self.id_match,
-            'id_user': self.id_user,
+            'id_usuario': self.id_usuario,
             'fecha_coincidencia': self.fecha_coincidencia.strftime('%d-%m-%Y %H:%M:%S'),
             'visto': self.visto,
             'id_vivienda': self.id_vivienda
