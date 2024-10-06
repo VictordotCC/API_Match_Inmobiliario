@@ -4,7 +4,6 @@ from app import db
 from geoalchemy2 import Geometry
 import datetime
 
-
 class Usuario(db.Model):
     __tablename__ = 'usuario'
     id_usuario = db.Column(db.String(10), primary_key=True)
@@ -239,7 +238,7 @@ class Vivienda(db.Model):
     area_construida = db.Column(db.Float, nullable=True)
     latitud = db.Column(db.Float, nullable=False)
     longitud = db.Column(db.Float, nullable=False)
-    ubicacion = db.Column(Geometry(geometry_type='POINT', srid=4326), nullable=False)
+    ubicacion = db.Column(Geometry(geometry_type='POINT', srid=4326, from_text='ST_GeomFROMEWKT', name='geometry'), nullable=False)
     tipo_subsidio = db.Column(db.String(15), nullable=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     links_contacto = db.Column(JSON, nullable=True)
@@ -249,7 +248,6 @@ class Vivienda(db.Model):
     id_region = db.Column(db.Integer, db.ForeignKey('region.id_region'), nullable=False)
 
     idx_vivienda_id_vecindario = db.Index('idx_vivienda_id_vecindario', id_vecindario)
-    idx_vivienda_ubicacion = db.Index('idx_vivienda_ubicacion', ubicacion)
 
     def __repr__(self):
         return f'<Vivienda {self.nombre_propiedad}>'
@@ -360,8 +358,8 @@ class Match(db.Model):
     id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
     id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
-    idx_favorito_id_usuario = db.Index('idx_favorito_id_usuario', id_usuario)
-    idx_favorito_id_vivienda = db.Index('idx_favorito_id_vivienda', id_vivienda)
+    idx_match_id_usuario = db.Index('idx_match_id_usuario', id_usuario)
+    idx_match_id_vivienda = db.Index('idx_match_id_vivienda', id_vivienda)
     
     def __repr__(self):
         return f'<Match {self.id_match}>'
