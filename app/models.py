@@ -244,9 +244,9 @@ class Vivienda(db.Model):
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     links_contacto = db.Column(JSON, nullable=True)
     id_vecindario = db.Column(db.Integer, db.ForeignKey('vecindario.id_vecindario'), nullable=False)
-    id_comuna = db.Column(db.Integer, db.ForeignKey('vecindario.id_comuna'), nullable=False)
-    id_ciudad = db.Column(db.Integer, db.ForeignKey('vecindario.id_ciudad'), nullable=False)
-    id_region = db.Column(db.Integer, db.ForeignKey('vecindario.id_region'), nullable=False)
+    id_comuna = db.Column(db.Integer, db.ForeignKey('comuna.id_comuna'), nullable=False)
+    id_ciudad = db.Column(db.Integer, db.ForeignKey('ciudad.id_ciudad'), nullable=False)
+    id_region = db.Column(db.Integer, db.ForeignKey('region.id_region'), nullable=False)
 
     idx_vivienda_id_vecindario = db.Index('idx_vivienda_id_vecindario', id_vecindario)
     idx_vivienda_ubicacion = db.Index('idx_vivienda_ubicacion', ubicacion)
