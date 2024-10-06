@@ -9,7 +9,7 @@ class Usuario(db.Model):
     __tablename__ = 'usuario'
     id_usuario = db.Column(db.String(10), primary_key=True)
     correo = db.Column(db.String(50), unique=True, nullable=False)
-    clave = db.Column(db.String(50), nullable=False)
+    clave = db.Column(db.String(128), nullable=False)
     tipo_usuario = db.Column(db.String(20), nullable=True)
     activo = db.Column(db.Boolean, nullable=False)
     nombres = db.Column(db.String(100), nullable=False)
