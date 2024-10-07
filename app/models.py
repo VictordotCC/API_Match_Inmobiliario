@@ -4,6 +4,7 @@ from app import db
 from geoalchemy2 import Geometry
 import datetime
 
+
 class Usuario(db.Model):
     __tablename__ = 'usuario'
     id_usuario = db.Column(db.String(10), primary_key=True)
@@ -238,7 +239,7 @@ class Vivienda(db.Model):
     area_construida = db.Column(db.Float, nullable=True)
     latitud = db.Column(db.Float, nullable=False)
     longitud = db.Column(db.Float, nullable=False)
-    ubicacion = db.Column(Geometry(geometry_type='POINT', srid=4326, from_text='ST_GeomFROMEWKT', name='geometry'), nullable=False)
+    ubicacion = db.Column(Geometry(geometry_type='POINT', srid=4326, from_text='ST_GeomFROMEWKT', name='geometry'), nullable=False) #Este campo es el resultado del calculo entre latitud y longitud
     tipo_subsidio = db.Column(db.String(15), nullable=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     links_contacto = db.Column(JSON, nullable=True)
