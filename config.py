@@ -11,6 +11,8 @@ class Config:
     DEBUG = False
     TESTING = False
     CORS_HEADERS = '*'
+    ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
+
 
 class DevConfig(Config):
     DEBUG = True

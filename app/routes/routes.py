@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from config import Config
 
 app = Blueprint('main', __name__)
 
@@ -21,4 +22,13 @@ def about():
 #ubicacion = func.ST_GeomFromText(f'POINT({lon} {lat})', 4326)
 #vivienda(ubicacion=ubicacion)
 #vivienda.save()
+
+#RUTAS DE ADMIN
+
+@app.route('/info_portalinmobiliario')
+def info_portalinmobiliario():
+    from helpers import refreshtoken
+    refreshtoken.refresh_token()
+    access_token = Config.ACCESS_TOKEN
+    return jsonify({'message': 'Informacion de Portal Inmobiliario'})
 
