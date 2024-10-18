@@ -24,11 +24,16 @@ def about():
 #vivienda.save()
 
 #RUTAS DE ADMIN
+#TODO: Implementar tokens de seguridad
 
 @app.route('/info_portalinmobiliario')
 def info_portalinmobiliario():
-    from helpers import refreshtoken
-    refreshtoken.refresh_token()
-    access_token = Config.ACCESS_TOKEN
+    from app.helpers import refreshtoken, fillDB_PI
+    access_token = refreshtoken.refresh_token()
+    fillDB_PI.fillDB_PI(access_token, 'La Florida')
     return jsonify({'message': 'Informacion de Portal Inmobiliario'})
+
+@app.route('/info_test')
+def info_test():
+    return jsonify({'message': Config.EXPIRES_DATE})
 

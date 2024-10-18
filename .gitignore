@@ -2,3 +2,6 @@
 .DS_Store
 Thumbs.db
 obtaintoken.py
+.env copy
+json
+orden

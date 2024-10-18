@@ -1,11 +1,11 @@
 import requests
-import os
-from dotenv import load_dotenv
 import datetime
+import os
 
-load_dotenv()
 
 def refresh_token():
+
+    path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         
     client_id = os.environ.get('CLIENT_ID')
     client_secret = os.environ.get('CLIENT_SECRET')
@@ -23,16 +23,16 @@ def refresh_token():
 
     if datetime.datetime.now() > datetime.datetime.strptime(expires_date, '%Y-%m-%d %H:%M:%S.%f'):
         print("Token expirado, renovando token...")
+        print(datetime.datetime.now())
         response = requests.post(token_url, data=payload)
 
         if response.status_code == 200:
             respuesta = response.json()
-            print(f"Access Token: {respuesta}")
-            with open('.env', 'r') as file:
+            with open(f'{path}/.env', 'r') as file:
                 lines = file.readlines()
 
-            with open('.env', 'w') as file:
-                for line in file:
+            with open(f'{path}/.env', 'w') as file:
+                for line in lines:
                     if "ACCESS_TOKEN" in line:
                         file.write(f'ACCESS_TOKEN={respuesta["access_token"]}\n')
                     elif "REFRESH_TOKEN" in line:
@@ -43,10 +43,13 @@ def refresh_token():
                         file.write(line)
             os.environ['ACCESS_TOKEN'] = respuesta['access_token']
             os.environ['REFRESH_TOKEN'] = respuesta['refresh_token']
+            os.environ['EXPIRES_DATE'] = str(datetime.datetime.now() + datetime.timedelta(seconds=respuesta['expires_in']))
+            return respuesta['access_token']
         else:
             print(f"Error al obtener el token: {response.status_code} - {response.text}")
     else:
-        print("Token aun no ha expirado")
+        print("Token valido, no se renueva")
+        return os.environ.get('ACCESS_TOKEN')
     return
 
         
