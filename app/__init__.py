@@ -4,6 +4,12 @@ from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 from config import DevConfig, TestConfig, ProdConfig
 
+import geopandas as gpd
+
+global gdf
+gdf = gpd.read_file('app/helpers/shapefiles/comunas.shp')
+gdf_wgs84 = gdf.to_crs(epsg=4326)
+
 db = SQLAlchemy()
 migrate = Migrate()
 
