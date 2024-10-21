@@ -6,11 +6,11 @@ total_results = 1
 limit = 1
 search_url = "https://api.mercadolibre.com/sites/MLC/search"
 
-access_token = "APP_USR-8877411817973447-101813-fb174fefc7ba5be538005f50f1259fcf-1963157673"
+access_token = ""
 
 params = {
     'category': 'MLC1459',
-    'q': 'H Covarrubias 1.200 Mts Totales',
+    'q': 'La Florida',
     'limit': limit,
     'offset': offset
     }
