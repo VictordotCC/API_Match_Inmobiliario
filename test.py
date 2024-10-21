@@ -32,6 +32,7 @@ with open('json', 'r') as file:
             print('banos: '+str(attrib['value_name'])) #13
         if attrib['id'] == 'COVERED_AREA' or attrib['id'] == 'MAX_COVERED_AREA':
             print('area_construida: '+str(attrib['value_struct']['number'])) #14
+    print ('Id : '+ str(data['id']))
     
     """#print(str(data['?????'])) #2
     #print(str(data['?????'])) #5

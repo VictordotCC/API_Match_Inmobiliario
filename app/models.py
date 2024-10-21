@@ -222,7 +222,7 @@ class Vecindario(db.Model):
 
 class Vivienda(db.Model):
     __tablename__ = 'vivienda'
-    id_vivienda = db.Column(db.String(10), primary_key=True)
+    id_vivienda = db.Column(db.String(50), primary_key=True)
     area_total = db.Column(db.Float, nullable=True)
     pisos = db.Column(db.Integer, nullable=True)
     habitaciones = db.Column(db.Integer, nullable=True)

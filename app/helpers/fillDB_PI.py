@@ -1,10 +1,9 @@
 import requests
-import math
 
 def fillDB_PI(access_token, consulta):
     offset = 0
     total_results = 1
-    limit = 1
+    limit = 50
     responses = []
     search_url = "https://api.mercadolibre.com/sites/MLC/search"
 
@@ -29,13 +28,13 @@ def fillDB_PI(access_token, consulta):
 
         if response.status_code == 200:
             total_results = response.json()['paging']['total']
-            print(f'Offset: {offset} - Total: {total_results}')
+            if total_results >= 4000:
+                total_results = 4000 #Limite de resultados impuesto por MercadoLibre
 
             responses.append(response.json())
             offset += limit
-
-            return responses
         else:
             print(f'Error: {response.status_code}')
             return responses
+    return responses
         

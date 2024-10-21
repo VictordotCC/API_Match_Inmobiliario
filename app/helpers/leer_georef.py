@@ -8,4 +8,4 @@ def leer_georef(lat, lon):
     provincia = gdf_wgs84[mask]['Provincia'].values[0]
     region = gdf_wgs84[mask]['Region'].values[0]
 
-    return {'comuna': comuna, 'provincia': provincia, 'region': region}
+    return {'comuna': comuna, 'ciudad': provincia, 'region': region}
