@@ -243,7 +243,7 @@ class Vivienda(db.Model):
     tipo_subsidio = db.Column(db.String(15), nullable=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     links_contacto = db.Column(JSON, nullable=True)
-    id_vecindario = db.Column(db.Integer, db.ForeignKey('vecindario.id_vecindario'), nullable=False)
+    id_vecindario = db.Column(db.Integer, db.ForeignKey('vecindario.id_vecindario'), nullable=True)
     id_comuna = db.Column(db.Integer, db.ForeignKey('comuna.id_comuna'), nullable=False)
     id_ciudad = db.Column(db.Integer, db.ForeignKey('ciudad.id_ciudad'), nullable=False)
     id_region = db.Column(db.Integer, db.ForeignKey('region.id_region'), nullable=False)
@@ -294,9 +294,9 @@ class Vivienda(db.Model):
 
 class Imagen(db.Model):
     __tablename__ = 'imagen'
-    id_imagen = db.Column(db.String(10), primary_key=True)
+    id_imagen = db.Column(db.String(50), primary_key=True)
     url = db.Column(db.String(500), nullable=False)
-    id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
+    id_vivienda = db.Column(db.String(50), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
     def __repr__(self):
         return f'<Imagen {self.id_imagen}>'
@@ -324,7 +324,7 @@ class Favorito(db.Model):
     id_favorito = db.Column(db.String(5), primary_key=True)
     fecha_guardado = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
-    id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
+    id_vivienda = db.Column(db.String(50), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
     idx_favorito_id_usuario = db.Index('idx_favorito_id_usuario', id_usuario)
     idx_favorito_id_vivienda = db.Index('idx_favorito_id_vivienda', id_vivienda)
@@ -357,7 +357,7 @@ class Match(db.Model):
     fecha_coincidencia = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     visto = db.Column(db.Boolean, nullable=False, default=False)
     id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
-    id_vivienda = db.Column(db.String(10), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
+    id_vivienda = db.Column(db.String(50), db.ForeignKey('vivienda.id_vivienda'), nullable=False)
 
     idx_match_id_usuario = db.Index('idx_match_id_usuario', id_usuario)
     idx_match_id_vivienda = db.Index('idx_match_id_vivienda', id_vivienda)
