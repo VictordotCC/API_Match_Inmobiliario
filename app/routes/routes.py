@@ -1,11 +1,16 @@
 from flask import Blueprint, jsonify, request
-from config import Config
-from app.models import *
-
-from app.helpers import refreshtoken, fillDB_PI
-from geoalchemy2 import functions as func
-from app.helpers import leer_georef
 import json
+
+from geoalchemy2 import Geography
+from geoalchemy2 import functions as func
+from sqlalchemy import func as sqlfunc
+from sqlalchemy import between
+
+from app.models import *
+from app.helpers import refreshtoken, fillDB_PI
+from app.helpers import leer_georef
+from config import distance_bleed
+
 
 app = Blueprint('main', __name__)
 
@@ -13,9 +18,73 @@ app = Blueprint('main', __name__)
 def index():
     return jsonify({'message': 'API Match Inmobiliario V1.0'})
 
-@app.route('/about')
-def about():
-    return jsonify({'message': 'About page'})
+@app.route('/explorar/', methods=['GET'])
+def explorar():
+    latitud = request.args.get('latitud')
+    longitud = request.args.get('longitud')
+    distancia = float(request.args.get('distancia', 1))
+    referencia = f'SRID=4326;POINT({latitud} {longitud})'
+    
+    # Crear la consulta
+    viviendas = db.session.query(
+        Vivienda,
+        func.ST_Distance(
+            sqlfunc.cast(Vivienda.ubicacion, Geography),
+            sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography)
+            ).label('distance')
+        ).filter(
+            func.ST_DWithin(
+                sqlfunc.cast(Vivienda.ubicacion, Geography),
+                sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
+                distancia * 1000  # Convertir a metros
+        )
+    ).all()
+    for vivienda, distancia in viviendas:
+        print(distancia)
+    return jsonify([{**vivienda.serialize(), 'distancia': distancia} for vivienda, distancia in viviendas])
+
+
+
+@app.route('/viviendas/', methods=['GET', 'POST'])
+def viviendas():
+    if request.method == 'GET':
+        vivienda = request.args.get('id_vivienda')
+        vivienda = Vivienda.query.filter_by(id_vivienda=vivienda).first()
+        if vivienda is not None:
+            return jsonify(vivienda.serialize())
+        else:
+            return jsonify({'message': 'Vivienda no encontrada'})
+    elif request.method == 'POST':
+        #POST contiene las preferencias del usuario
+        data = request.get_json()
+        #Realizar Query de viviendas segun las preferencias del usuario
+        referencia = f'SRID=4326;POINT({data['lat']} {data['lon']})'
+        distancia_m = int(data['distancia']) * 1000
+        #campos excluyentes
+        viviendas = Vivienda.query.filter(
+            Vivienda.tipo_operacion == data['tipo_operacion'], # 1. Tipo de operacion
+            Vivienda.tipo_vivienda == data['tipo_vivienda'], # 2. Tipo de vivienda
+            Vivienda.precio_uf.between(int(data['precio_uf'])-300, int(data['precio_uf'])+300), # 3. Precio
+            func.ST_DWithin(                                    # 4. Distancia
+                sqlfunc.cast(Vivienda.ubicacion, Geography),
+                sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
+                distancia_m + distance_bleed
+            ),
+            Vivienda.condicion == data['condicion'], # 9. Condicion
+            Vivienda.tipo_subsidio == data['tipo_subsidio'] # 14. Tipo de subsidio
+        ).order_by(
+            sqlfunc.abs(Vivienda.habitaciones - data['habitaciones']).asc(), # 5. habitaciones
+            sqlfunc.abs(Vivienda.area_construida - data['area_construida']).asc(), # 6. Area Construida
+            sqlfunc.abs(Vivienda.area_total - data['area_total']).asc(), # 7. Area Total
+            sqlfunc.abs(Vivienda.banos - data['banos']).asc(), # 8. Baños
+            sqlfunc.abs(Vivienda.estaciona - data['estaciona']).asc(), # 10. estacionamiento
+            sqlfunc.abs(Vivienda.bodega - data['bodega']).asc(), # 11. bodega
+            sqlfunc.abs(Vivienda.antiguedad - data['antiguedad']).asc(), # 12. antiguedad
+            sqlfunc.abs(Vivienda.pisos - data['pisos']).asc(), # 13. pisos
+        ).all()
+        return jsonify([vivienda.serialize() for vivienda in viviendas])
+
+
 
 
 #Ejemplo QUERY JSON field:
@@ -136,9 +205,4 @@ def info_portalinmobiliario(comuna):
         return jsonify({'message': f'Error: {e}'})
     
     return jsonify({'message': f'Informacion de Portal Inmobiliario de {comunaConsulta} importada correctamente'})
-
-
-@app.route('/info_test')
-def info_test():
-    return jsonify({'message': Config.EXPIRES_DATE})
 

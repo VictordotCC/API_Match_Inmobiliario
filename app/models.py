@@ -63,11 +63,11 @@ class Preferencia(db.Model):
     condicion = db.Column(db.String(20), nullable=True)
     tipo_operacion = db.Column(db.Boolean, nullable=True)
     banos = db.Column(db.Integer, nullable=True)
-    area_construida = db.Column(db.Float, nullable=True)
+    area_construida = db.Column(db.Float, nullable=True) 
     tipo_subsidio = db.Column(db.String(15), nullable=True)
     notificacion = db.Column(db.Boolean, nullable=True)
     busqueda_automatica = db.Column(db.Boolean, nullable=True)
-    distancia = db.Column(db.Float, nullable=True)
+    distancia = db.Column(db.Float, nullable=True) 
     contactado = db.Column(db.Boolean, nullable=False, default=True)
     id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
 
