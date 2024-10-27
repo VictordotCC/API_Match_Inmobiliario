@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_cors import CORS, cross_origin
 import json
 
 from geoalchemy2 import Geography
@@ -13,12 +14,20 @@ from config import distance_bleed
 
 
 app = Blueprint('main', __name__)
+CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type"]}})
+
+@app.after_request
+def afer_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    return response
 
 @app.route('/')
 def index():
     return jsonify({'message': 'API Match Inmobiliario V1.0'})
 
-@app.route('/explorar/', methods=['GET'])
+@app.route('/explorar', methods=['GET'])
 def explorar():
     latitud = request.args.get('latitud')
     longitud = request.args.get('longitud')
@@ -44,9 +53,8 @@ def explorar():
     return jsonify([{**vivienda.serialize(), 'distancia': distancia} for vivienda, distancia in viviendas])
 
 
-
-@app.route('/viviendas/', methods=['GET', 'POST'])
-def viviendas():
+@app.route('/viviendas', methods=['GET', 'POST'])
+def viviendas(): #FIXME: Errores en querys vacías
     if request.method == 'GET':
         vivienda = request.args.get('id_vivienda')
         vivienda = Vivienda.query.filter_by(id_vivienda=vivienda).first()
@@ -58,34 +66,31 @@ def viviendas():
         #POST contiene las preferencias del usuario
         data = request.get_json()
         #Realizar Query de viviendas segun las preferencias del usuario
-        referencia = f'SRID=4326;POINT({data['lat']} {data['lon']})'
-        distancia_m = int(data['distancia']) * 1000
+        referencia = f'SRID=4326;POINT({data['ubicacion']['lat']} {data['ubicacion']['lon']})'
+        distancia_m = int(data['preferencias']['distancia']) * 1000
         #campos excluyentes
         viviendas = Vivienda.query.filter(
-            Vivienda.tipo_operacion == data['tipo_operacion'], # 1. Tipo de operacion
-            Vivienda.tipo_vivienda == data['tipo_vivienda'], # 2. Tipo de vivienda
-            Vivienda.precio_uf.between(int(data['precio_uf_desde'])-100, int(data['precio_uf_hasta'])+100), # 3. Precio
+            Vivienda.tipo_operacion == data['preferencias']['tipo_operacion'], # 1. Tipo de operacion
+            Vivienda.tipo_vivienda == data['preferencias']['tipo_vivienda'], #2. Tipo de vivienda
+            Vivienda.precio_uf.between(int(data['preferencias']['precio_uf_desde'])-100, int(data['preferencias']['precio_uf_hasta'])+100), # 3. Precio
             func.ST_DWithin(                                    # 4. Distancia
                 sqlfunc.cast(Vivienda.ubicacion, Geography),
                 sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
                 distancia_m + distance_bleed
             ),
-            Vivienda.condicion == data['condicion'], # 9. Condicion
-            Vivienda.tipo_subsidio == data['tipo_subsidio'] # 14. Tipo de subsidio
+            Vivienda.condicion == data['preferencias']['condicion'], # 9. Condicion
+            Vivienda.tipo_subsidio == data['preferencias']['tipo_subsidio'] # 14. Tipo de subsidio
         ).order_by(
-            sqlfunc.abs(Vivienda.habitaciones - data['habitaciones']).asc(), # 5. habitaciones
-            sqlfunc.abs(Vivienda.area_construida - data['area_construida']).asc(), # 6. Area Construida
-            sqlfunc.abs(Vivienda.area_total - data['area_total']).asc(), # 7. Area Total
-            sqlfunc.abs(Vivienda.banos - data['banos']).asc(), # 8. Baños
-            sqlfunc.abs(Vivienda.estaciona - data['estaciona']).asc(), # 10. estacionamiento
-            sqlfunc.abs(Vivienda.bodega - data['bodega']).asc(), # 11. bodega
-            sqlfunc.abs(Vivienda.antiguedad - data['antiguedad']).asc(), # 12. antiguedad
-            sqlfunc.abs(Vivienda.pisos - data['pisos']).asc(), # 13. pisos
+            sqlfunc.abs(Vivienda.habitaciones - data['preferencias']['habitaciones']).asc(), # 5. habitaciones
+            sqlfunc.abs(Vivienda.area_construida - data['preferencias']['area_construida']).asc(), # 6. Area Construida
+            sqlfunc.abs(Vivienda.area_total - data['preferencias']['area_total']).asc(), # 7. Area Total
+            sqlfunc.abs(Vivienda.banos - data['preferencias']['banos']).asc(), # 8. Baños
+            sqlfunc.abs(Vivienda.estaciona - data['preferencias']['estaciona']).asc(), # 10. estacionamiento
+            sqlfunc.abs(Vivienda.bodega - data['preferencias']['bodega']).asc(), # 11. bodega
+            sqlfunc.abs(Vivienda.antiguedad - data['preferencias']['antiguedad']).asc(), # 12. antiguedad
+            sqlfunc.abs(Vivienda.pisos - data['preferencias']['pisos']).asc(), # 13. pisos
         ).all()
         return jsonify([vivienda.serialize() for vivienda in viviendas])
-
-
-
 
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])

@@ -21,7 +21,8 @@ config = {
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type"]}})
+
     app.config.from_object(config['prod'])
 
     db.init_app(app)
