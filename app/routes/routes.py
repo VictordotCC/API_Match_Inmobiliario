@@ -64,7 +64,7 @@ def viviendas():
         viviendas = Vivienda.query.filter(
             Vivienda.tipo_operacion == data['tipo_operacion'], # 1. Tipo de operacion
             Vivienda.tipo_vivienda == data['tipo_vivienda'], # 2. Tipo de vivienda
-            Vivienda.precio_uf.between(int(data['precio_uf'])-300, int(data['precio_uf'])+300), # 3. Precio
+            Vivienda.precio_uf.between(int(data['precio_uf_desde'])-100, int(data['precio_uf_hasta'])+100), # 3. Precio
             func.ST_DWithin(                                    # 4. Distancia
                 sqlfunc.cast(Vivienda.ubicacion, Geography),
                 sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
