@@ -65,6 +65,8 @@ def viviendas(): #FIXME: Errores en querys vacías
     elif request.method == 'POST':
         #POST contiene las preferencias del usuario
         data = request.get_json()
+        print(data)
+        #return jsonify(data)
         #Realizar Query de viviendas segun las preferencias del usuario
         referencia = f'SRID=4326;POINT({data['ubicacion']['lat']} {data['ubicacion']['lon']})'
         distancia_m = int(data['preferencias']['distancia']) * 1000

@@ -1,0 +1,33 @@
+{
+    "preferencias": 
+    {
+        "usuario": "", 
+        "busquedaAutomatica": "true", 
+        "distancia": 0, 
+        "tipo_operacion": "Compra", 
+        "tipo_vivienda": "Casa", 
+        "condicion": "Nueva", 
+        "area_total": 0, 
+        "pisos": 0, 
+        "area_construida": 0, 
+        "antiguedad": 0, 
+        "TipoValor": "UF", 
+        "ValorMinimo": 0,
+        "ValorMaximo": 0, 
+        "precio_uf_desde": 0, 
+        "precio_uf_hasta": 0, 
+        "tipo_subsidio": "Ninguno", 
+        "habitaciones": 0, 
+        "banos": 0, 
+        "estaciona": 0, 
+        "bodega": 0, 
+        "contactado": "false", 
+        "notificaciones": "true"
+    }, 
+    "ubicacion": 
+    {
+        "lat": -33.5347712, 
+        "lon": -70.5888256, 
+        "timestamp": 1730221303870
+    }
+}
