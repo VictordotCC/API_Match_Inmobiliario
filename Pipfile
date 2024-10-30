@@ -11,6 +11,8 @@ flask-sqlalchemy = "*"
 flask-migrate = "*"
 flask-cors = "*"
 psycopg2-binary = "*"
+geopandas = "*"
+requests = "*"
 
 [dev-packages]
 
