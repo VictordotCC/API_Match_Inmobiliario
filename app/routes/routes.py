@@ -6,6 +6,7 @@ from geoalchemy2 import Geography
 from geoalchemy2 import functions as func
 from sqlalchemy import func as sqlfunc
 from sqlalchemy import between
+from sqlalchemy.orm import joinedload
 
 from app.models import *
 from app.helpers import refreshtoken, fillDB_PI
@@ -71,8 +72,9 @@ def viviendas():
         distancia_m = int(data['preferencias']['distancia']) * 1000
         precio_desde = float(data['preferencias']['precio_uf_desde'])
         precio_hasta = float(data['preferencias']['precio_uf_hasta'])
-        #campos excluyentes                     
-        query = Vivienda.query.filter(
+        #campos excluyentes
+        query = db.session.query(Vivienda, Imagen).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda)               
+        query = query.filter(
             Vivienda.tipo_operacion == data['preferencias']['tipo_operacion'], # 1. Tipo de operacion
             Vivienda.tipo_vivienda == data['preferencias']['tipo_vivienda'], #2. Tipo de vivienda
             func.ST_DWithin(                                    # 4. Distancia
@@ -98,22 +100,33 @@ def viviendas():
             sqlfunc.abs(Vivienda.antiguedad - data['preferencias']['antiguedad']).asc(), # 12. antiguedad
             sqlfunc.abs(Vivienda.pisos - data['preferencias']['pisos']).asc(), # 13. pisos
             ).all()
-        return jsonify([vivienda.serialize() for vivienda in viviendas])
+        viviendas_serializadas = []
+        for vivienda, imagen in viviendas:
+            vivienda_data = vivienda.serialize()
+            vivienda_data['imagenes'] = [imagen.serialize()]
+            viviendas_serializadas.append(vivienda_data)
+        return jsonify(viviendas_serializadas)
     
 @app.route('/viviendas_cercanas', methods=['GET'])
 def viviendas_cercanas():
     latitud = request.args.get('lat')
     longitud = request.args.get('lon')
-    distancia = 50000
+    distancia = 1000
     referencia = f'SRID=4326;POINT({longitud} {latitud})'
-    viviendas = Vivienda.query.filter(
+
+    viviendas = db.session.query(Vivienda, Imagen).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda).filter(
         func.ST_DWithin(
             sqlfunc.cast(Vivienda.ubicacion, Geography),
             sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
             distancia
             )
         ).all()
-    return jsonify([vivienda.serialize() for vivienda in viviendas])
+    viviendas_serializadas = []
+    for vivienda, imagen in viviendas:
+        vivienda_data = vivienda.serialize()
+        vivienda_data['imagenes'] = [imagen.serialize()]
+        viviendas_serializadas.append(vivienda_data)
+    return jsonify(viviendas_serializadas)
 
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
