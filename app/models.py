@@ -230,11 +230,11 @@ class Vivienda(db.Model):
     estaciona = db.Column(db.Integer, nullable=True)
     bodega = db.Column(db.Integer, nullable=True)
     antiguedad = db.Column(db.Integer, nullable=True)
-    tipo_vivienda = db.Column(db.Integer, nullable=False)
+    tipo_vivienda = db.Column(db.Integer, nullable=False) #0: Departamento, 1: Casa 2: Otro
     nombre_propiedad = db.Column(db.String(250), nullable=False)
     descripcion = db.Column(db.String(500), nullable=False)
     condicion = db.Column(db.String(10), nullable=True)
-    tipo_operacion = db.Column(db.Boolean, nullable=True)
+    tipo_operacion = db.Column(db.Boolean, nullable=True) #0: Venta, 1: Arriendo
     banos = db.Column(db.Integer, nullable=True)
     area_construida = db.Column(db.Float, nullable=True)
     latitud = db.Column(db.Float, nullable=False)

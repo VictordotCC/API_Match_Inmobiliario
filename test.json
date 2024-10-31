@@ -1,9 +1,9 @@
 {
     "preferencias": 
     {
-        "usuario": "", 
+        "usuario": "abc@def.com", 
         "busquedaAutomatica": "true", 
-        "distancia": 0, 
+        "distancia": 10, 
         "tipo_operacion": "Compra", 
         "tipo_vivienda": "Casa", 
         "condicion": "Nueva", 
@@ -22,7 +22,7 @@
         "estaciona": 0, 
         "bodega": 0, 
         "contactado": "false", 
-        "notificaciones": "true"
+        "notificaciones": "false"
     }, 
     "ubicacion": 
     {

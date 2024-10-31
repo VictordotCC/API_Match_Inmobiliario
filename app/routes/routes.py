@@ -54,7 +54,7 @@ def explorar():
 
 
 @app.route('/viviendas', methods=['GET', 'POST'])
-def viviendas(): #FIXME: Errores en querys vacías
+def viviendas():
     if request.method == 'GET':
         vivienda = request.args.get('id_vivienda')
         vivienda = Vivienda.query.filter_by(id_vivienda=vivienda).first()
@@ -65,16 +65,16 @@ def viviendas(): #FIXME: Errores en querys vacías
     elif request.method == 'POST':
         #POST contiene las preferencias del usuario
         data = request.get_json()
-        print(data)
         #return jsonify(data)
         #Realizar Query de viviendas segun las preferencias del usuario
-        referencia = f'SRID=4326;POINT({data['ubicacion']['lat']} {data['ubicacion']['lon']})'
+        referencia = f'SRID=4326;POINT({data['ubicacion']['lon']} {data['ubicacion']['lat']})'
         distancia_m = int(data['preferencias']['distancia']) * 1000
-        #campos excluyentes
-        viviendas = Vivienda.query.filter(
+        precio_desde = float(data['preferencias']['precio_uf_desde'])
+        precio_hasta = float(data['preferencias']['precio_uf_hasta'])
+        #campos excluyentes                     
+        query = Vivienda.query.filter(
             Vivienda.tipo_operacion == data['preferencias']['tipo_operacion'], # 1. Tipo de operacion
             Vivienda.tipo_vivienda == data['preferencias']['tipo_vivienda'], #2. Tipo de vivienda
-            Vivienda.precio_uf.between(int(data['preferencias']['precio_uf_desde'])-100, int(data['preferencias']['precio_uf_hasta'])+100), # 3. Precio
             func.ST_DWithin(                                    # 4. Distancia
                 sqlfunc.cast(Vivienda.ubicacion, Geography),
                 sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
@@ -82,7 +82,13 @@ def viviendas(): #FIXME: Errores en querys vacías
             ),
             Vivienda.condicion == data['preferencias']['condicion'], # 9. Condicion
             Vivienda.tipo_subsidio == data['preferencias']['tipo_subsidio'] # 14. Tipo de subsidio
-        ).order_by(
+        )
+        if precio_desde != 0 and precio_hasta != 0 and precio_desde-100 < precio_hasta+100:
+            print('Precio desde:', precio_desde, 'Precio hasta:', precio_hasta)
+            query = query.filter(
+                Vivienda.precio_uf.between(precio_desde-100, precio_hasta+100)) # 3. Precio
+        
+        viviendas = query.order_by(
             sqlfunc.abs(Vivienda.habitaciones - data['preferencias']['habitaciones']).asc(), # 5. habitaciones
             sqlfunc.abs(Vivienda.area_construida - data['preferencias']['area_construida']).asc(), # 6. Area Construida
             sqlfunc.abs(Vivienda.area_total - data['preferencias']['area_total']).asc(), # 7. Area Total
@@ -91,8 +97,23 @@ def viviendas(): #FIXME: Errores en querys vacías
             sqlfunc.abs(Vivienda.bodega - data['preferencias']['bodega']).asc(), # 11. bodega
             sqlfunc.abs(Vivienda.antiguedad - data['preferencias']['antiguedad']).asc(), # 12. antiguedad
             sqlfunc.abs(Vivienda.pisos - data['preferencias']['pisos']).asc(), # 13. pisos
-        ).all()
+            ).all()
         return jsonify([vivienda.serialize() for vivienda in viviendas])
+    
+@app.route('/viviendas_cercanas', methods=['GET'])
+def viviendas_cercanas():
+    latitud = request.args.get('lat')
+    longitud = request.args.get('lon')
+    distancia = 50000
+    referencia = f'SRID=4326;POINT({longitud} {latitud})'
+    viviendas = Vivienda.query.filter(
+        func.ST_DWithin(
+            sqlfunc.cast(Vivienda.ubicacion, Geography),
+            sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
+            distancia
+            )
+        ).all()
+    return jsonify([vivienda.serialize() for vivienda in viviendas])
 
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
