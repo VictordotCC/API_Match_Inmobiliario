@@ -353,7 +353,7 @@ class Favorito(db.Model):
 
 class Match(db.Model):
     __tablename__ = 'match'
-    id_match = db.Column(db.String(5), primary_key=True)
+    id_match = db.Column(db.String(100), primary_key=True)
     fecha_coincidencia = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     visto = db.Column(db.Boolean, nullable=False, default=False)
     id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=False)
@@ -376,6 +376,10 @@ class Match(db.Model):
     
     def save(self):
         db.session.add(self)
+        db.session.commit()
+
+    def bulk_save(matches):
+        db.session.bulk_save_objects(matches)
         db.session.commit()
 
     def update(self):

@@ -73,7 +73,7 @@ def viviendas():
         precio_desde = float(data['preferencias']['precio_uf_desde'])
         precio_hasta = float(data['preferencias']['precio_uf_hasta'])
         #campos excluyentes
-        query = db.session.query(Vivienda, Imagen).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda)               
+        query = db.session.query(Vivienda)          
         query = query.filter(
             Vivienda.tipo_operacion == data['preferencias']['tipo_operacion'], # 1. Tipo de operacion
             Vivienda.tipo_vivienda == data['preferencias']['tipo_vivienda'], #2. Tipo de vivienda
@@ -89,9 +89,32 @@ def viviendas():
             print('Precio desde:', precio_desde, 'Precio hasta:', precio_hasta)
             query = query.filter(
                 Vivienda.precio_uf.between(precio_desde-100, precio_hasta+100)) # 3. Precio
-        
-        viviendas = query.order_by(
-            sqlfunc.abs(Vivienda.habitaciones - data['preferencias']['habitaciones']).asc(), # 5. habitaciones
+            
+        if data['preferencias']['habitaciones'] != 0:
+            query = query.filter(Vivienda.habitaciones == data['preferencias']['habitaciones'])
+        if data['preferencias']['area_construida'] != 0:
+            query = query.filter(Vivienda.area_construida == data['preferencias']['area_construida'])
+        if data['preferencias']['area_total'] != 0:
+            query = query.filter(Vivienda.area_total == data['preferencias']['area_total'])
+        if data['preferencias']['banos'] != 0:
+            query = query.filter(Vivienda.banos == data['preferencias']['banos'])
+        if data['preferencias']['estaciona'] != 0:
+            #no se aplica por falta de datos
+            #query = query.filter(Vivienda.estaciona == data['preferencias']['estaciona'])
+            pass
+        if data['preferencias']['bodega'] != 0:
+            #no se aplica por falta de datos
+            #query = query.filter(Vivienda.bodega == data['preferencias']['bodega'])
+            pass
+        if data['preferencias']['antiguedad'] != 0:
+            #no se aplica por falta de datos
+            #query = query.filter(Vivienda.antiguedad == data['preferencias']['antiguedad'])
+            pass
+        if data['preferencias']['pisos'] != 0:
+            #no se aplica por falta de datos
+            #query = query.filter(Vivienda.pisos == data['preferencias']['pisos']) 
+            pass
+        query = query.order_by(
             sqlfunc.abs(Vivienda.area_construida - data['preferencias']['area_construida']).asc(), # 6. Area Construida
             sqlfunc.abs(Vivienda.area_total - data['preferencias']['area_total']).asc(), # 7. Area Total
             sqlfunc.abs(Vivienda.banos - data['preferencias']['banos']).asc(), # 8. Baños
@@ -99,13 +122,29 @@ def viviendas():
             sqlfunc.abs(Vivienda.bodega - data['preferencias']['bodega']).asc(), # 11. bodega
             sqlfunc.abs(Vivienda.antiguedad - data['preferencias']['antiguedad']).asc(), # 12. antiguedad
             sqlfunc.abs(Vivienda.pisos - data['preferencias']['pisos']).asc(), # 13. pisos
-            ).all()
-        viviendas_serializadas = []
-        for vivienda, imagen in viviendas:
-            vivienda_data = vivienda.serialize()
-            vivienda_data['imagenes'] = [imagen.serialize()]
-            viviendas_serializadas.append(vivienda_data)
-        return jsonify(viviendas_serializadas)
+            )
+
+        viviendas = query.all()
+        usuario = data['preferencias']['usuario']
+        usuario_id = Usuario.query.filter_by(correo=usuario).first().id_usuario
+
+        #Pre-fetch matches existentes
+        ids_to_check = ['M' + str(usuario_id) + str(vivienda.id_vivienda) for vivienda in viviendas]
+        existing_matches = set(match.id_match for match in Match.query.filter(Match.id_match.in_(ids_to_check)).all())
+        matches = []
+        
+        for vivienda in viviendas:
+            match_id = 'M'+ str(usuario_id) + str(vivienda.id_vivienda)
+            if match_id not in existing_matches:
+                match = Match()
+                match.id_usuario = usuario_id
+                match.id_vivienda = vivienda.id_vivienda
+                match.fecha_coincidencia = datetime.datetime.now(datetime.timezone.utc)
+                match.id_match = match_id
+                matches.append(match)
+        if matches:
+            Match.bulk_save(matches)
+        return jsonify({'message': 'Match actualizados '+ str(len(viviendas))})
     
 @app.route('/viviendas_cercanas', methods=['GET'])
 def viviendas_cercanas():
@@ -121,12 +160,45 @@ def viviendas_cercanas():
             distancia
             )
         ).all()
-    viviendas_serializadas = []
-    for vivienda, imagen in viviendas:
-        vivienda_data = vivienda.serialize()
-        vivienda_data['imagenes'] = [imagen.serialize()]
-        viviendas_serializadas.append(vivienda_data)
+    viviendas_serializadas = [{**vivienda.serialize(), 'imagenes': [imagen.serialize()]} for vivienda, imagen in viviendas]
     return jsonify(viviendas_serializadas)
+
+@app.route('/get_matches', methods=['GET'])
+def get_matches():
+    usuario = request.args.get('usuario')
+    usuario_id = Usuario.query.filter_by(correo=usuario).first().id_usuario
+    matches = Match.query.filter(
+        Match.id_usuario == usuario_id,
+        Match.visto == False).order_by(Match.fecha_coincidencia.desc()
+        ).limit(20).all()
+
+    viviendas_ids = [match.id_vivienda for match in matches]
+    viviendas_dict = {v.id_vivienda: v for v in Vivienda.query.filter(Vivienda.id_vivienda.in_(viviendas_ids)).all()}
+    imagenes_dict = {}
+    for imagen in Imagen.query.filter(Imagen.id_vivienda.in_(viviendas_ids)).all():
+        if imagen.id_vivienda not in imagenes_dict:
+            imagenes_dict[imagen.id_vivienda] = []
+        imagenes_dict[imagen.id_vivienda].append(imagen.serialize())
+
+    viviendas = [
+        {
+            **viviendas_dict[match.id_vivienda].serialize(),
+            'imagenes': imagenes_dict.get(match.id_vivienda, []),
+            'id_match': match.id_match
+        } for match in matches if match.id_vivienda in viviendas_dict
+    ]
+    return jsonify(viviendas)
+
+@app.route('/marcar_visto', methods=['GET'])
+def marcar_visto():
+    id_match = request.args.get('id_match')
+    match = Match.query.filter_by(id_match=id_match).first()
+    if match is not None:
+        match.visto = True
+        match.update()
+        return jsonify({'message': 'Match marcado como visto'})
+    else:
+        return jsonify({'message': 'Match no encontrado'})
 
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
