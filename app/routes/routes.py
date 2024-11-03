@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_cors import CORS, cross_origin
 import json
+from logging import exception
 
 from geoalchemy2 import Geography
 from geoalchemy2 import functions as func
@@ -203,6 +204,34 @@ def marcar_visto():
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
 
+@app.route('/favoritos', methods=['GET', 'POST'])  #metodo agregado para manejar favoritos 01/07/2021 (mvc)
+def favoritos():
+   
+    try:
+        
+        if request.method == 'GET':
+           fav = Favorito.query.all()           
+           toreturn = [usi.serialize() for usi in fav]
+           return jsonify(toreturn), 200 #es ok
+        elif request.method == 'POST':
+            fav = Favorito()
+            #if fav is not None:
+            #    return jsonify({'message': 'Vivienda ya es favorita'})
+            fav.id_usuario = request.json['id_usuario']
+            fav.id_vivienda = request.json['id_vivienda']
+            fav.fecha_guardado = request.json['fecha_guardado']
+            Favorito.save(fav)
+            return jsonify({'message': 'Vivienda agregada a favoritos'})  
+    except Exception:
+            exception ("[Server] Error al obtener favoritos")
+            return jsonify({"msg":"Ha ocurrido un error"}), 500 #error interno del servidor
+
+       
+
+        
+   
+
+# fin del metodo agregado para manejar favoritos 01/07/2021 (mvc)
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
