@@ -255,7 +255,7 @@ class Vivienda(db.Model):
     
     def serialize(self):
         return {
-            'id': self.id_vivienda,
+            'id_vivienda': self.id_vivienda,
             'area_total': self.area_total,
             'pisos': self.pisos,
             'habitaciones': self.habitaciones,

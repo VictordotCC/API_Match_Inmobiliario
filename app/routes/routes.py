@@ -151,29 +151,62 @@ def viviendas():
 def viviendas_cercanas():
     latitud = request.args.get('lat')
     longitud = request.args.get('lon')
+    #page = int(request.args.get('page', 1)) PAGINACION YA NO ES NECESARIA
+    #per_page = int(request.args.get('per_page', 100))
     distancia = 1000
     referencia = f'SRID=4326;POINT({longitud} {latitud})'
 
-    viviendas = db.session.query(Vivienda, Imagen).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda).filter(
-        func.ST_DWithin(
+    #offset = (page - 1) * per_page
+
+    viviendas = db.session.query(
+        Vivienda,
+        Imagen,
+        func.ST_Distance(
             sqlfunc.cast(Vivienda.ubicacion, Geography),
-            sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
-            distancia
-            )
-        ).all()
-    viviendas_serializadas = [{**vivienda.serialize(), 'imagenes': [imagen.serialize()]} for vivienda, imagen in viviendas]
+            sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography)
+            ).label('cercania')
+        ).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda).filter(
+            func.ST_DWithin(
+                sqlfunc.cast(Vivienda.ubicacion, Geography),
+                sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
+                distancia
+                )
+        ).order_by('cercania').all()
+        
+    viviendas_serializadas = [{**vivienda.serialize(), 'imagenes': [imagen.serialize()], 'cercania': cercania} for vivienda, imagen, cercania in viviendas]
     return jsonify(viviendas_serializadas)
 
 @app.route('/get_matches', methods=['GET'])
 def get_matches():
     usuario = request.args.get('usuario')
+    lat = float(request.args.get('lat'))
+    lon = float(request.args.get('lon'))
+
     usuario_id = Usuario.query.filter_by(correo=usuario).first().id_usuario
+    referencia = f'SRID=4326;POINT({lon} {lat})'
+
+    matches = (
+        db.session.query(
+            Match,
+            Vivienda,
+            func.ST_Distance(
+                func.ST_GeographyFromText(referencia),
+                sqlfunc.cast(Vivienda.ubicacion, Geography)
+            ).label('cercania')
+        )
+        .join(Vivienda, Match.id_vivienda == Vivienda.id_vivienda)
+        .filter(Match.id_usuario == usuario_id, Match.visto == False)
+        .order_by(Match.fecha_coincidencia.desc())
+        .limit(20)
+        .all()
+    )
+    """
     matches = Match.query.filter(
         Match.id_usuario == usuario_id,
         Match.visto == False).order_by(Match.fecha_coincidencia.desc()
         ).limit(20).all()
-
-    viviendas_ids = [match.id_vivienda for match in matches]
+    """
+    viviendas_ids = [match.id_vivienda for match, vivienda, cercania in matches]
     viviendas_dict = {v.id_vivienda: v for v in Vivienda.query.filter(Vivienda.id_vivienda.in_(viviendas_ids)).all()}
     imagenes_dict = {}
     for imagen in Imagen.query.filter(Imagen.id_vivienda.in_(viviendas_ids)).all():
@@ -185,8 +218,9 @@ def get_matches():
         {
             **viviendas_dict[match.id_vivienda].serialize(),
             'imagenes': imagenes_dict.get(match.id_vivienda, []),
-            'id_match': match.id_match
-        } for match in matches if match.id_vivienda in viviendas_dict
+            'id_match': match.id_match,
+            'cercania': int(cercania)
+        } for match, vivienda, cercania in matches if match.id_vivienda in viviendas_dict
     ]
     return jsonify(viviendas)
 
@@ -204,27 +238,29 @@ def marcar_visto():
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
 
-@app.route('/favoritos', methods=['GET', 'POST'])  #metodo agregado para manejar favoritos 01/07/2021 (mvc)
+@app.route('/favoritos', methods=['GET', 'POST'])
 def favoritos():
-   
-    try:
-        
-        if request.method == 'GET':
-           fav = Favorito.query.all()           
-           toreturn = [usi.serialize() for usi in fav]
-           return jsonify(toreturn), 200 #es ok
-        elif request.method == 'POST':
-            fav = Favorito()
-            #if fav is not None:
-            #    return jsonify({'message': 'Vivienda ya es favorita'})
-            fav.id_usuario = request.json['id_usuario']
-            fav.id_vivienda = request.json['id_vivienda']
-            fav.fecha_guardado = request.json['fecha_guardado']
-            Favorito.save(fav)
-            return jsonify({'message': 'Vivienda agregada a favoritos'})  
-    except Exception:
-            exception ("[Server] Error al obtener favoritos")
-            return jsonify({"msg":"Ha ocurrido un error"}), 500 #error interno del servidor
+    if request.method == 'GET':
+        fav = Favorito.query.all()           
+        toreturn = [usi.serialize() for usi in fav]
+        return jsonify(toreturn), 200 #es ok
+    elif request.method == 'POST':
+        fav = Favorito()
+        usuario = request.json['usuario']
+        fav.id_usuario = Usuario.query.filter_by(correo=usuario).first().id_usuario
+        fav.id_vivienda = request.json['id_vivienda']
+        fav.fecha_guardado = datetime.datetime.now(datetime.timezone.utc)
+        #get last fav id
+        last_fav = Favorito.query.order_by(Favorito.id_favorito.desc()).first()
+        if last_fav is None:
+            fav.id_favorito = fav.id_usuario[0:2] + str(1).zfill(3)
+        else:
+            fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[1:]) + 1).zfill(3)
+        query = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
+        if query is not None:
+            fav.id_favorito = fav.id_usuario[0:3] + str(int(last_fav.id_favorito[1:]) + 2).zfill(2)
+        return jsonify({'message': 'Vivienda agregada a favoritos'})  
+
 
        
 
