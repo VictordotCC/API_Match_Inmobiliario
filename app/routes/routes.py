@@ -241,9 +241,40 @@ def marcar_visto():
 @app.route('/favoritos', methods=['GET', 'POST'])
 def favoritos():
     if request.method == 'GET':
-        fav = Favorito.query.all()           
-        toreturn = [usi.serialize() for usi in fav]
-        return jsonify(toreturn), 200 #es ok
+        correo = request.args.get('usuario')
+        lat = request.args.get('lat')
+        lon = request.args.get('lon')
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        if usuario is None:
+            if usuario is None:
+                return jsonify({'message': f'Usuario no encontrado para el correo: {correo}'})
+            
+        favoritos = db.session.query(
+            Favorito,
+            Vivienda,
+            Imagen,
+            func.ST_Distance(
+                sqlfunc.cast(Vivienda.ubicacion, Geography),
+                sqlfunc.cast(func.ST_GeographyFromText(f'SRID=4326;POINT({lon} {lat})'), Geography)
+            ).label('cercania')
+        ).filter(Favorito.id_usuario == usuario.id_usuario
+        ).join(Vivienda, Favorito.id_vivienda == Vivienda.id_vivienda
+        ).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda
+        ).filter(Favorito.id_usuario == usuario.id_usuario
+        ).order_by(Favorito.fecha_guardado.desc()).all()
+
+        toreturn = []
+
+        for fav, vivienda, imagen, cercania in favoritos:
+            toreturn.append({
+                **vivienda.serialize(),
+                'imagenes': [imagen.serialize()],
+                'cercania': cercania,
+                'id_favorito': fav.id_favorito,
+                'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
+            })
+
+        return jsonify(toreturn), 200
     elif request.method == 'POST':
         fav = Favorito()
         usuario = request.json['usuario']
