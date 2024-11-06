@@ -289,7 +289,7 @@ def favoritos():
             fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[1:]) + 1).zfill(3)
         query = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
         if query is not None:
-            fav.id_favorito = fav.id_usuario[0:3] + str(int(last_fav.id_favorito[1:]) + 2).zfill(2)
+            fav.id_favorito = fav.id_usuario[0:3] + str((last_fav.id_favorito[1:]) + 2).zfill(2)
         return jsonify({'message': 'Vivienda agregada a favoritos'})  
 
 
