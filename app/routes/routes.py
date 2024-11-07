@@ -277,20 +277,25 @@ def favoritos():
         return jsonify(toreturn), 200
     elif request.method == 'POST':
         fav = Favorito()
-        usuario = request.json['usuario']
+        data = request.get_json()
+        usuario = data['usuario']
         fav.id_usuario = Usuario.query.filter_by(correo=usuario).first().id_usuario
-        fav.id_vivienda = request.json['id_vivienda']
+        fav.id_vivienda = data['id_vivienda']
         fav.fecha_guardado = datetime.datetime.now(datetime.timezone.utc)
         #get last fav id
         last_fav = Favorito.query.order_by(Favorito.id_favorito.desc()).first()
         if last_fav is None:
             fav.id_favorito = fav.id_usuario[0:2] + str(1).zfill(3)
         else:
-            fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[1:]) + 1).zfill(3)
-        query = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
-        if query is not None:
-            fav.id_favorito = fav.id_usuario[0:3] + str((last_fav.id_favorito[1:]) + 2).zfill(2)
-        return jsonify({'message': 'Vivienda agregada a favoritos'})  
+            fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[2:]) + 1).zfill(3)
+        existe = Favorito.query.filter_by(id_usuario=fav.id_usuario, id_vivienda=fav.id_vivienda).first()
+        if existe is not None:
+            return jsonify({'message': 'Vivienda ya en favoritos'}), 400
+        id_repetido = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
+        if id_repetido is not None:
+            fav.id_favorito = fav.id_usuario[0:2] + str(int(id_repetido.id_favorito[2:]) + 1).zfill(3)
+        fav.save()
+        return jsonify({'message': 'Vivienda agregada a favoritos'}, 200)  
 
 
        
