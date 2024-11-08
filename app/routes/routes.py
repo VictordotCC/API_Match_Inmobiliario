@@ -240,65 +240,67 @@ def marcar_visto():
 
 @app.route('/favoritos', methods=['GET', 'POST'])
 def favoritos():
-    if request.method == 'GET':
-        correo = request.args.get('usuario')
-        lat = request.args.get('lat')
-        lon = request.args.get('lon')
-        usuario = Usuario.query.filter_by(correo=correo).first()
-        if usuario is None:
+    try:
+        if request.method == 'GET':
+            correo = request.args.get('usuario')
+            lat = request.args.get('lat')
+            lon = request.args.get('lon')
+            usuario = Usuario.query.filter_by(correo=correo).first()
             if usuario is None:
-                return jsonify({'message': f'Usuario no encontrado para el correo: {correo}'})
-            
-        favoritos = db.session.query(
-            Favorito,
-            Vivienda,
-            Imagen,
-            func.ST_Distance(
-                sqlfunc.cast(Vivienda.ubicacion, Geography),
-                sqlfunc.cast(func.ST_GeographyFromText(f'SRID=4326;POINT({lon} {lat})'), Geography)
-            ).label('cercania')
-        ).filter(Favorito.id_usuario == usuario.id_usuario
-        ).join(Vivienda, Favorito.id_vivienda == Vivienda.id_vivienda
-        ).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda
-        ).filter(Favorito.id_usuario == usuario.id_usuario
-        ).order_by(Favorito.fecha_guardado.desc()).all()
+                if usuario is None:
+                    return jsonify({'message': f'Usuario no encontrado para el correo: {correo}'})
+                
+            favoritos = db.session.query(
+                Favorito,
+                Vivienda,
+                Imagen,
+                func.ST_Distance(
+                    sqlfunc.cast(Vivienda.ubicacion, Geography),
+                    sqlfunc.cast(func.ST_GeographyFromText(f'SRID=4326;POINT({lon} {lat})'), Geography)
+                ).label('cercania')
+            ).filter(Favorito.id_usuario == usuario.id_usuario
+            ).join(Vivienda, Favorito.id_vivienda == Vivienda.id_vivienda
+            ).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda
+            ).filter(Favorito.id_usuario == usuario.id_usuario
+            ).order_by(Favorito.fecha_guardado.desc()).all()
 
-        toreturn = []
+            toreturn = []
 
-        for fav, vivienda, imagen, cercania in favoritos:
-            toreturn.append({
-                **vivienda.serialize(),
-                'imagenes': [imagen.serialize()],
-                'cercania': cercania,
-                'id_favorito': fav.id_favorito,
-                'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
-            })
+            for fav, vivienda, imagen, cercania in favoritos:
+                toreturn.append({
+                    **vivienda.serialize(),
+                    'imagenes': [imagen.serialize()],
+                    'cercania': cercania,
+                    'id_favorito': fav.id_favorito,
+                    'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
+                })
 
-        return jsonify(toreturn), 200
-    elif request.method == 'POST':
-        fav = Favorito()
-        data = request.get_json()
-        usuario = data['usuario']
-        fav.id_usuario = Usuario.query.filter_by(correo=usuario).first().id_usuario
-        fav.id_vivienda = data['id_vivienda']
-        fav.fecha_guardado = datetime.datetime.now(datetime.timezone.utc)
-        #get last fav id
-        last_fav = Favorito.query.order_by(Favorito.id_favorito.desc()).first()
-        if last_fav is None:
-            fav.id_favorito = fav.id_usuario[0:2] + str(1).zfill(3)
-        else:
-            fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[2:]) + 1).zfill(3)
-        existe = Favorito.query.filter_by(id_usuario=fav.id_usuario, id_vivienda=fav.id_vivienda).first()
-        if existe is not None:
-            return jsonify({'message': 'Vivienda ya en favoritos'}), 400
-        id_repetido = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
-        if id_repetido is not None:
-            fav.id_favorito = fav.id_usuario[0:2] + str(int(id_repetido.id_favorito[2:]) + 1).zfill(3)
-        fav.save()
-        return jsonify({'message': 'Vivienda agregada a favoritos'}, 200)  
+            return jsonify(toreturn), 200
+        elif request.method == 'POST':
+            fav = Favorito()
+            data = request.get_json()
+            usuario = data['usuario']
+            fav.id_usuario = Usuario.query.filter_by(correo=usuario).first().id_usuario
+            fav.id_vivienda = data['id_vivienda']
+            fav.fecha_guardado = datetime.datetime.now(datetime.timezone.utc)
+            #get last fav id
+            last_fav = Favorito.query.order_by(Favorito.id_favorito.desc()).first()
+            if last_fav is None:
+                fav.id_favorito = fav.id_usuario[0:2] + str(1).zfill(3)
+            else:
+                fav.id_favorito = fav.id_usuario[0:2] + str(int(last_fav.id_favorito[2:]) + 1).zfill(3)
+            existe = Favorito.query.filter_by(id_usuario=fav.id_usuario, id_vivienda=fav.id_vivienda).first()
+            if existe is not None:
+                return jsonify({'message': 'Vivienda ya en favoritos'}), 400
+            id_repetido = Favorito.query.filter_by(id_favorito=fav.id_favorito).first()
+            if id_repetido is not None:
+                fav.id_favorito = fav.id_usuario[0:2] + str(int(id_repetido.id_favorito[2:]) + 1).zfill(3)
+            fav.save()
+            return jsonify({'message': 'Vivienda agregada a favoritos'}, 200)  
+    except Exception:
+        exception("[server] Error ->")
+        return jsonify({'message': 'Error al agregar favorito'}, 500)
 
-
-       
 
         
    
