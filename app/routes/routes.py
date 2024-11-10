@@ -69,7 +69,7 @@ def viviendas():
         data = request.get_json()
         #return jsonify(data)
         #Realizar Query de viviendas segun las preferencias del usuario
-        referencia = f'SRID=4326;POINT({data["ubicacion"]["lon"]} {data['ubicacion']['lat']})'
+        referencia = f'SRID=4326;POINT({data["ubicacion"]["lon"]} {data["ubicacion"]["lat"]})'
         distancia_m = int(data['preferencias']['distancia']) * 1000
         precio_desde = float(data['preferencias']['precio_uf_desde'])
         precio_hasta = float(data['preferencias']['precio_uf_hasta'])
