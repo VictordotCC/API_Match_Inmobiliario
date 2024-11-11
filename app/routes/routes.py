@@ -171,7 +171,7 @@ def viviendas_cercanas():
                 sqlfunc.cast(func.ST_GeographyFromText(referencia), Geography),
                 distancia
                 )
-        ).order_by('cercania').all()
+        ).order_by('cercania').limit(20).all()
         
     viviendas_serializadas = [{**vivienda.serialize(), 'imagenes': [imagen.serialize()], 'cercania': cercania} for vivienda, imagen, cercania in viviendas]
     return jsonify(viviendas_serializadas)
@@ -300,12 +300,6 @@ def favoritos():
     except Exception:
         exception("[server] Error ->")
         return jsonify({'message': 'Error al agregar favorito'}, 500)
-
-
-        
-   
-
-# fin del metodo agregado para manejar favoritos 01/07/2021 (mvc)
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
