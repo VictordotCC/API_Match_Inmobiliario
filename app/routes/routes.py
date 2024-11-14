@@ -238,7 +238,7 @@ def marcar_visto():
 #Ejemplo QUERY JSON field:
 # data = Target.query.order_by(Target.product['salesrank'])
 
-@app.route('/favoritos', methods=['GET', 'POST'])
+@app.route('/favoritos', methods=['GET', 'POST', 'DELETE'])
 def favoritos():
     try:
         if request.method == 'GET':
@@ -274,7 +274,6 @@ def favoritos():
                     'id_favorito': fav.id_favorito,
                     'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
                 })
-
             return jsonify(toreturn), 200
         elif request.method == 'POST':
             fav = Favorito()
@@ -296,7 +295,21 @@ def favoritos():
             if id_repetido is not None:
                 fav.id_favorito = fav.id_usuario[0:2] + str(int(id_repetido.id_favorito[2:]) + 1).zfill(3)
             fav.save()
-            return jsonify({'message': 'Vivienda agregada a favoritos'}, 200)  
+            return jsonify({'message': 'Vivienda agregada a favoritos'}, 200) 
+        elif request.method == 'DELETE':
+            data = request.get_json()
+            correo = data['usuario']
+            id_vivienda = data['id_vivienda']
+            usuario = Usuario.query.filter_by(correo=correo).first()
+            favorito = Favorito.query.filter(
+                Favorito.id_usuario == usuario.id_usuario,
+                Favorito.id_vivienda == id_vivienda
+            ).first()
+            if favorito is not None:
+                favorito.delete()
+                return jsonify({'message': 'Vivienda eliminada de favoritos'})
+            else:
+                return jsonify({'message': 'Vivienda no encontrada en favoritos'})
     except Exception:
         exception("[server] Error ->")
         return jsonify({'message': 'Error al agregar favorito'}, 500)
