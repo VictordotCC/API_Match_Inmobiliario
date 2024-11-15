@@ -29,6 +29,17 @@ def afer_request(response):
 def index():
     return jsonify({'message': 'API Match Inmobiliario V1.0'})
 
+#RUTAS DE USUARIO
+
+@app.route('/usuario', methods=['GET'])
+def usuario():
+    correo = request.args.get('usuario')
+    usuario = Usuario.query.filter_by(correo=correo).first()
+    if usuario is not None:
+        return jsonify(usuario.serialize())
+    else:
+        return jsonify({'message': 'Usuario no encontrado'})
+
 @app.route('/explorar', methods=['GET'])
 def explorar():
     latitud = request.args.get('latitud')
