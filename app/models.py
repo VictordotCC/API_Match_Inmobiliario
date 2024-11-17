@@ -18,6 +18,8 @@ class Usuario(db.Model):
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc))
     imagen = db.Column(db.String(100), nullable=True)
     links_contacto = db.Column(JSON, nullable=True)
+    refresh_token = db.Column(db.String(500), nullable=True)
+    refresh_token_expiry = db.Column(db.DateTime, nullable=True)
 
     idx_usuario_correo = db.Index('idx_usuario_correo', correo)
 

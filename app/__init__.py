@@ -2,6 +2,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
+from flask_jwt_extended import JWTManager
+
 from config import DevConfig, TestConfig, ProdConfig
 
 import geopandas as gpd
@@ -23,8 +25,9 @@ def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
 
-    app.config.from_object(config['prod'])
-
+    app.config.from_object(config['dev'])
+    
+    jwt = JWTManager(app)
     db.init_app(app)
     migrate.init_app(app, db)
 

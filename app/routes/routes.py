@@ -1,10 +1,12 @@
+import json
+
 from flask import Blueprint, jsonify, request
 from flask_cors import CORS, cross_origin
-import json
-from logging import exception
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 
 from geoalchemy2 import Geography
 from geoalchemy2 import functions as func
+
 from sqlalchemy import func as sqlfunc
 from sqlalchemy import between
 from sqlalchemy.orm import joinedload
@@ -12,7 +14,10 @@ from sqlalchemy.orm import joinedload
 from app.models import *
 from app.helpers import refreshtoken, fillDB_PI
 from app.helpers import leer_georef
+from app.helpers import aes
+from app.helpers import auth
 from config import distance_bleed
+from config import Config
 
 
 app = Blueprint('main', __name__)
@@ -39,6 +44,96 @@ def usuario():
         return jsonify(usuario.serialize())
     else:
         return jsonify({'message': 'Usuario no encontrado'})
+
+@app.route('/registro', methods=['POST'])
+def registro():
+    data = request.get_json()
+    usuario = Usuario()
+    usuario.correo = data['correo']
+    usuario.nombres = data['nombres']
+    usuario.apellidos = data['apellidos']
+    usuario.telefono = data['telefono']
+    usuario.fecha_creacion = datetime.datetime.now(datetime.timezone.utc)
+    usuario.activo = False
+    cantidad_usuarios = Usuario.query.count()
+    hexa = format(cantidad_usuarios, 'X')
+    usuario.id_usuario = 'miU#' + hexa.zfill(6)
+    clave = data['contrasena']
+    usuario.clave = aes.encrypt(clave)
+    usuario.save()
+    return jsonify({'message': 'Usuario registrado'})
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    correo = data['correo']
+    clave = data['contrasena']
+    clave_aes = aes.encrypt(clave)
+    usuario = Usuario.query.filter_by(correo=correo, clave=clave).first()
+    #usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
+    if usuario:
+        access_token, refresh_token = auth.create_tokens(usuario.id_usuario)
+        expiry = datetime.datetime.fromtimestamp(auth.decode_token(refresh_token)['exp'], datetime.timezone.utc)
+        usuario.refresh_token = refresh_token
+        usuario.refresh_token_expiry = expiry
+        usuario.update()
+        return jsonify({
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'user': usuario.serialize()
+        })
+    return jsonify({'message': 'Usuario o contraseña incorrectos'}), 401
+
+#RUTAS DE FUNCIONALIDAD
+
+@app.route('/auto-login', methods=['POST'])
+def auto_login():
+    try:
+    # Verificar si hay un access token válido
+        if verify_jwt_in_request(optional=True):
+            current_user = get_jwt_identity()
+            usuario = Usuario.query.filter_by(id_usuario=current_user).first()
+            if usuario:
+                # El access token es válido y devuelve el usuario
+                return jsonify(usuario.serialize()), 200
+    except:
+        # Si no hay un access token válido, verificar el refresh token
+        refresh_token = request.get_json().get('refresh_token')
+        if not refresh_token:
+            # No hay token de refresco, el usuario debe loguear
+            return jsonify({'message': 'No hay tokens válidos'}), 401
+
+        data = auth.decode_token(refresh_token)
+        if not data:
+            # Error al decodificar el token de refresco, el usuario debe loguear
+            return jsonify({'message': 'Token inválido'}), 401
+
+        user_id = data['sub']
+        usuario = Usuario.query.filter_by(id_usuario=user_id, refresh_token=refresh_token).first()
+        if not usuario:
+            # Hay token de refresco pero el usuario no existe, el usuario debe loguear
+            return jsonify({'message': 'Refresh Token inválido'}), 401
+        # Token de acceso expirado, se genera uno nuevo, el usuario no necesita loguear
+        new_access_token = auth.new_access_token(user_id)
+        return jsonify({
+            'access_token': new_access_token,
+            'user': usuario.serialize()
+        }), 200
+
+@app.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_jwt_token():
+    current_user = get_jwt_identity()
+    usuario = Usuario.query.filter_by(id_usuario=current_user).first()
+    if not usuario:
+        #Usuario no encontrado, el usuario debe loguear
+        return jsonify({'message': 'Usuario no encontrado'}), 401
+    print(usuario.refresh_token)
+    if auth.verify_expiry(usuario.refresh_token):
+        #Token de refresco expirado, el usuario debe loguear
+        return jsonify({'message': 'Token expirado'}), 401
+    new_access_token = auth.new_access_token(current_user)
+    return jsonify({'access_token': new_access_token})
 
 @app.route('/explorar', methods=['GET'])
 def explorar():
@@ -322,7 +417,6 @@ def favoritos():
             else:
                 return jsonify({'message': 'Vivienda no encontrada en favoritos'})
     except Exception:
-        exception("[server] Error ->")
         return jsonify({'message': 'Error al agregar favorito'}, 500)
 
 #RUTAS DE ADMIN

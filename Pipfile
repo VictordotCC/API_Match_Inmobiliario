@@ -13,6 +13,9 @@ flask-cors = "*"
 psycopg2-binary = "*"
 geopandas = "*"
 requests = "*"
+pycryptodome = "*"
+flask-jwt-extended = "*"
+pyjwt = "*"
 
 [dev-packages]
 
