@@ -69,7 +69,7 @@ def login():
     correo = data['correo']
     clave = data['contrasena']
     clave_aes = aes.encrypt(clave)
-    usuario = Usuario.query.filter_by(correo=correo, clave=clave).first()
+    usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
     #usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
     if usuario:
         access_token, refresh_token = auth.create_tokens(usuario.id_usuario)
@@ -80,9 +80,10 @@ def login():
         return jsonify({
             'access_token': access_token,
             'refresh_token': refresh_token,
-            'user': usuario.serialize()
-        })
-    return jsonify({'message': 'Usuario o contraseña incorrectos'}), 401
+            'user': usuario.serialize(),
+            'status': 200
+        }), 200
+    return jsonify({'message': 'Usuario o contraseña incorrectos', 'status':401}), 401
 
 #RUTAS DE FUNCIONALIDAD
 
@@ -418,6 +419,53 @@ def favoritos():
                 return jsonify({'message': 'Vivienda no encontrada en favoritos'})
     except Exception:
         return jsonify({'message': 'Error al agregar favorito'}, 500)
+
+#RUTAS CRUD
+
+@app.route('/preferencia', methods=['GET', 'POST', 'DELETE'])
+def preferencia():
+    if request.method == 'GET':
+        correo = request.args.get('correo')
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        if usuario is None:
+            return jsonify({'message': 'Usuario no encontrado'}), 404
+        preferencias = Preferencia.query.filter_by(id_usuario=usuario.id_usuario).first()
+        if preferencias is not None:
+            return jsonify({
+                'preferencias': preferencias.serialize(),
+                'status': 200})
+        else:
+            return jsonify({'message': 'Preferencia no encontrada'}), 404
+    elif request.method == 'POST':
+        data = request.get_json()
+        usuario = Usuario.query.filter_by(correo=data['correo']).first()
+        if usuario is None:
+            return jsonify({'message': 'Usuario no encontrado'}), 404
+        preferencias = Preferencia.query.filter_by(id_usuario=usuario.id_usuario).first()
+        if preferencias is not None:
+            #Update preferencia
+            for key, value in data['preferencias'].items():
+                if key == 'usuario':
+                    continue
+                setattr(preferencias, key, value)
+            preferencias.update()
+            return jsonify({'message': 'Preferencias actualizadas', 'status':200})
+        elif preferencias is None:
+            preferencias = Preferencia()
+            preferencias.id_usuario = usuario.id_usuario
+            hash = aes.encrypt(preferencias.id_usuario)
+            preferencias.id_preferencia = 'MIPF' + hash[0:6]
+            for key, value in data['preferencias'].items():
+                if key == 'usuario':
+                    continue
+                setattr(preferencias, key, value)
+            preferencias.save()
+        return jsonify({'message': 'Preferencias guardadas', 'status':200})
+
+
+
+
+
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
