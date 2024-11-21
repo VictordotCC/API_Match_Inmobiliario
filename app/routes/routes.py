@@ -462,6 +462,22 @@ def preferencia():
             preferencias.save()
         return jsonify({'message': 'Preferencias guardadas', 'status':200})
 
+@app.route('/imagenes', methods=['GET','POST'])
+def imagenes():
+    if request.method == 'GET':
+        id_vivienda = request.args.get('id_vivienda')
+        imagenes = Imagen.query.filter_by(id_vivienda=id_vivienda).all()
+        if imagenes is not None:
+            return jsonify([imagen.serialize() for imagen in imagenes])
+        else:
+            return jsonify({'message': 'Imagenes no encontradas'})
+    elif request.method == 'POST':
+        data = request.get_json()
+        imagen = Imagen()
+        imagen.id_vivienda = data['id_vivienda']
+        imagen.url = data['url']
+        imagen.save()
+        return jsonify({'message': 'Imagen guardada'})
 
 
 
