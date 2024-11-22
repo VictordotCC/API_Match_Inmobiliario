@@ -57,7 +57,9 @@ class Preferencia(db.Model):
     area_total = db.Column(db.Float, nullable=True)
     pisos = db.Column(db.Integer, nullable=True)
     habitaciones = db.Column(db.Integer, nullable=True)
-    precio_uf = db.Column(db.Float, nullable=True)
+    tipo_valor = db.Column(db.String(10), nullable=True)
+    precio_minimo = db.Column(db.Float, nullable=True)
+    precio_maximo = db.Column(db.Float, nullable=True)
     estaciona = db.Column(db.Integer, nullable=True)
     bodega = db.Column(db.Integer, nullable=True)
     antiguedad = db.Column(db.Integer, nullable=True)
@@ -66,8 +68,8 @@ class Preferencia(db.Model):
     tipo_operacion = db.Column(db.Boolean, nullable=True)
     banos = db.Column(db.Integer, nullable=True)
     area_construida = db.Column(db.Float, nullable=True) 
-    tipo_subsidio = db.Column(db.String(15), nullable=True)
-    notificacion = db.Column(db.Boolean, nullable=True)
+    tipo_subsidio = db.Column(JSON, nullable=True)
+    notificaciones = db.Column(db.Boolean, nullable=True)
     busqueda_automatica = db.Column(db.Boolean, nullable=True)
     distancia = db.Column(db.Float, nullable=True) 
     contactado = db.Column(db.Boolean, nullable=False, default=True)
@@ -85,7 +87,9 @@ class Preferencia(db.Model):
             'area_total': self.area_total,
             'pisos': self.pisos,
             'habitaciones': self.habitaciones,
-            'precio_uf': self.precio_uf,
+            'tipo_valor': self.tipo_valor,
+            'precio_minimo': self.precio_minimo,
+            'precio_maximo': self.precio_maximo,
             'estaciona': self.estaciona,
             'bodega': self.bodega,
             'antiguedad': self.antiguedad,
@@ -95,7 +99,7 @@ class Preferencia(db.Model):
             'banos': self.banos,
             'area_construida': self.area_construida,
             'tipo_subsidio': self.tipo_subsidio,
-            'notificacion': self.notificacion,
+            'notificaciones': self.notificaciones,
             'busqueda_automatica': self.busqueda_automatica,
             'distancia': self.distancia,
             'contactado': self.contactado,

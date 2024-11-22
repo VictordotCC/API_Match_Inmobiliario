@@ -8,7 +8,7 @@ from geoalchemy2 import Geography
 from geoalchemy2 import functions as func
 
 from sqlalchemy import func as sqlfunc
-from sqlalchemy import between
+from sqlalchemy import between, or_
 from sqlalchemy.orm import joinedload
 
 from app.models import *
@@ -83,7 +83,7 @@ def login():
             'user': usuario.serialize(),
             'status': 200
         }), 200
-    return jsonify({'message': 'Usuario o contraseña incorrectos', 'status':401}), 401
+    return jsonify({'message': 'Usuario o contraseña incorrectos', 'status':401})
 
 #RUTAS DE FUNCIONALIDAD
 
@@ -191,7 +191,6 @@ def viviendas():
                 distancia_m + distance_bleed
             ),
             Vivienda.condicion == data['preferencias']['condicion'], # 9. Condicion
-            Vivienda.tipo_subsidio == data['preferencias']['tipo_subsidio'] # 14. Tipo de subsidio
         )
         if precio_desde != 0 and precio_hasta != 0 and precio_desde-100 < precio_hasta+100:
             print('Precio desde:', precio_desde, 'Precio hasta:', precio_hasta)
@@ -231,6 +230,13 @@ def viviendas():
             sqlfunc.abs(Vivienda.antiguedad - data['preferencias']['antiguedad']).asc(), # 12. antiguedad
             sqlfunc.abs(Vivienda.pisos - data['preferencias']['pisos']).asc(), # 13. pisos
             )
+        
+        subsidios = data['preferencias']['tipo_subsidio'] # obtiene listado de subsidios
+        if subsidios:
+            condiciones = [Vivienda.tipo_subsidio.contains(subsidio) for subsidio in subsidios]
+            query = query.filter(or_(*condiciones))
+
+                
 
         viviendas = query.all()
         usuario = data['preferencias']['usuario']
@@ -290,6 +296,8 @@ def get_matches():
     lon = float(request.args.get('lon'))
 
     usuario_id = Usuario.query.filter_by(correo=usuario).first().id_usuario
+    if usuario_id is None:
+        return jsonify({'message': 'Usuario no encontrado'}), 404
     referencia = f'SRID=4326;POINT({lon} {lat})'
 
     matches = (
