@@ -21,12 +21,13 @@ from config import Config
 
 
 app = Blueprint('main', __name__)
-CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type"]}})
+#CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
 
 @app.after_request
 def afer_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     return response
 
@@ -69,8 +70,8 @@ def login():
     correo = data['correo']
     clave = data['contrasena']
     clave_aes = aes.encrypt(clave)
+    #usuario = Usuario.query.filter_by(correo=correo, clave=clave).first()
     usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
-    #usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
     if usuario:
         access_token, refresh_token = auth.create_tokens(usuario.id_usuario)
         expiry = datetime.datetime.fromtimestamp(auth.decode_token(refresh_token)['exp'], datetime.timezone.utc)
@@ -91,13 +92,18 @@ def login():
 def auto_login():
     try:
     # Verificar si hay un access token válido
-        if verify_jwt_in_request(optional=True):
+        if verify_jwt_in_request():
             current_user = get_jwt_identity()
+            print(current_user)
             usuario = Usuario.query.filter_by(id_usuario=current_user).first()
             if usuario:
                 # El access token es válido y devuelve el usuario
-                return jsonify(usuario.serialize()), 200
-    except:
+                return jsonify({
+                    'access_token': request.headers.get('Authorization').split(' ')[1],
+                    'user':     usuario.serialize(),
+                    'status': 200
+                    }), 200
+    except Exception as e:
         # Si no hay un access token válido, verificar el refresh token
         refresh_token = request.get_json().get('refresh_token')
         if not refresh_token:
@@ -118,7 +124,8 @@ def auto_login():
         new_access_token = auth.new_access_token(user_id)
         return jsonify({
             'access_token': new_access_token,
-            'user': usuario.serialize()
+            'user': usuario.serialize(),
+            'status': 200
         }), 200
 
 @app.route('/refresh', methods=['POST'])
@@ -431,6 +438,7 @@ def favoritos():
 #RUTAS CRUD
 
 @app.route('/preferencia', methods=['GET', 'POST', 'DELETE'])
+@jwt_required()
 def preferencia():
     if request.method == 'GET':
         correo = request.args.get('correo')
