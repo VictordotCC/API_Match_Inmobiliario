@@ -170,6 +170,7 @@ def explorar():
 
 
 @app.route('/viviendas', methods=['GET', 'POST'])
+@jwt_required()
 def viviendas():
     if request.method == 'GET':
         vivienda = request.args.get('id_vivienda')
@@ -268,6 +269,7 @@ def viviendas():
         return jsonify({'message': 'Match actualizados '+ str(len(viviendas))})
     
 @app.route('/viviendas_cercanas', methods=['GET'])
+@jwt_required()
 def viviendas_cercanas():
     latitud = request.args.get('lat')
     longitud = request.args.get('lon')
@@ -297,6 +299,7 @@ def viviendas_cercanas():
     return jsonify(viviendas_serializadas)
 
 @app.route('/get_matches', methods=['GET'])
+@jwt_required()
 def get_matches():
     usuario = request.args.get('usuario')
     lat = float(request.args.get('lat'))
@@ -347,6 +350,7 @@ def get_matches():
     return jsonify(viviendas)
 
 @app.route('/marcar_visto', methods=['GET'])
+@jwt_required()
 def marcar_visto():
     id_match = request.args.get('id_match')
     match = Match.query.filter_by(id_match=id_match).first()
@@ -361,6 +365,7 @@ def marcar_visto():
 # data = Target.query.order_by(Target.product['salesrank'])
 
 @app.route('/favoritos', methods=['GET', 'POST', 'DELETE'])
+@jwt_required()
 def favoritos():
     try:
         if request.method == 'GET':
@@ -479,6 +484,7 @@ def preferencia():
         return jsonify({'message': 'Preferencias guardadas', 'status':200})
 
 @app.route('/imagenes', methods=['GET','POST'])
+@jwt_required()
 def imagenes():
     if request.method == 'GET':
         id_vivienda = request.args.get('id_vivienda')
