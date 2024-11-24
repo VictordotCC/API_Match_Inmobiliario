@@ -42,7 +42,7 @@ def usuario():
     correo = request.args.get('usuario')
     usuario = Usuario.query.filter_by(correo=correo).first()
     if usuario is not None:
-        return jsonify(usuario.serialize())
+        return jsonify(usuario.correo)
     else:
         return jsonify({'message': 'Usuario no encontrado'})
 
