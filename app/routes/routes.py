@@ -437,8 +437,8 @@ def favoritos():
                 return jsonify({'message': 'Vivienda eliminada de favoritos'})
             else:
                 return jsonify({'message': 'Vivienda no encontrada en favoritos'})
-    except Exception:
-        return jsonify({'message': 'Error al agregar favorito'}, 500)
+    except Exception as e:
+        return jsonify({'message': 'Error al agregar favorito', 'EXC': str(e)}, 500)
 
 #RUTAS CRUD
 
