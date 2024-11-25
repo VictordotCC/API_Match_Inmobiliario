@@ -163,8 +163,10 @@ def refresh_jwt_token():
     if auth.verify_expiry(usuario.refresh_token):
         #Token de refresco expirado, el usuario debe loguear
         return jsonify({'message': 'Token expirado'}), 401
-    new_access_token = auth.new_access_token(current_user)
-    return jsonify({'access_token': new_access_token})
+    new_access_token, new_refresh_token = auth.create_tokens(usuario.id_usuario)
+    usuario.refresh_token = new_refresh_token
+    usuario.update()
+    return jsonify({'access_token': new_access_token, 'refresh_token': new_refresh_token}), 200
 
 @app.route('/explorar', methods=['GET'])
 def explorar():
@@ -266,8 +268,6 @@ def viviendas():
         if subsidios:
             condiciones = [Vivienda.tipo_subsidio.contains(subsidio) for subsidio in subsidios]
             query = query.filter(or_(*condiciones))
-
-                
 
         viviendas = query.all()
         usuario = data['preferencias']['usuario']
@@ -493,6 +493,10 @@ def preferencia():
                     continue
                 setattr(preferencias, key, value)
             preferencias.update()
+            #Borrar todos los match del usuario
+            print(usuario.id_usuario)
+            Match.query.filter_by(id_usuario=usuario.id_usuario).delete()
+            db.session.commit()
             return jsonify({'message': 'Preferencias actualizadas', 'status':200})
         elif preferencias is None:
             preferencias = Preferencia()
