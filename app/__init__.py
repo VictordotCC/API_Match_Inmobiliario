@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
+from flask_mail import Mail
 
 from config import DevConfig, TestConfig, ProdConfig
 
@@ -14,6 +15,7 @@ gdf_wgs84 = gdf.to_crs(epsg=4326)
 
 db = SQLAlchemy()
 migrate = Migrate()
+mail = Mail()
 
 config = {
     'dev': DevConfig,
@@ -26,6 +28,7 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "*"}})
 
     app.config.from_object(config['dev'])
+    mail.init_app(app)
     
     jwt = JWTManager(app)
     db.init_app(app)

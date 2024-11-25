@@ -2,6 +2,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token
 import jwt
 from config import Config
 from datetime import datetime, timezone
+from itsdangerous import URLSafeTimedSerializer
 
 def create_tokens(user_id):
     access_token = create_access_token(identity=user_id)
@@ -31,4 +32,21 @@ def verify_expiry(token):
     if expiry_time > current_time:
         return False
     return True
+
+def generate_confirmation_token(email):
+    serializer = URLSafeTimedSerializer(Config.SECRET_KEY)
+    return serializer.dumps(email, salt=Config.SALT)
+
+def confirm_token(token, expiration=3600):
+    serializer = URLSafeTimedSerializer(Config.SECRET_KEY)
+    try:
+        email = serializer.loads(
+            token,
+            salt=Config.SALT,
+            max_age=expiration
+        )
+        return email
+    except:
+        return False
+    
     

@@ -21,6 +21,17 @@ class Config:
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
+    SALT = os.environ.get('SALT')
+
+    #EMAIL SETTINGS
+    MAIL_DEFAULT_SENDER = "noreply@match.inmobiliario.cl"
+    MAIL_SERVER = "smtp.imitate.email"
+    MAIL_PORT = 587
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
+    MAIL_DEBUG = False
+    MAIL_USERNAME = os.environ.get('EMAIL_USER')
+    MAIL_PASSWORD = os.environ.get('EMAIL_PASSWORD')
 
 class DevConfig(Config):
     DEBUG = True

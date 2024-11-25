@@ -16,6 +16,7 @@ requests = "*"
 pycryptodome = "*"
 flask-jwt-extended = "*"
 pyjwt = "*"
+flask-mail = "*"
 
 [dev-packages]
 

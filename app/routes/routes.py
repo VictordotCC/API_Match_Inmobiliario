@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, url_for, render_template
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 
@@ -16,9 +16,8 @@ from app.helpers import refreshtoken, fillDB_PI
 from app.helpers import leer_georef
 from app.helpers import aes
 from app.helpers import auth
+from app.helpers.email import send_email
 from config import distance_bleed
-from config import Config
-
 
 app = Blueprint('main', __name__)
 #CORS(app, resources={r"/*": {"origins": "*"}})
@@ -61,8 +60,24 @@ def registro():
     usuario.id_usuario = 'miU#' + hexa.zfill(6)
     clave = data['contrasena']
     usuario.clave = aes.encrypt(clave)
+    token = auth.generate_confirmation_token(usuario.correo)
+    confirm_url = url_for('confirmar', token=token, _external=True)
+    html = render_template('templates/confirm_email.html', confirm_url=confirm_url)
+    subject = 'Por favor confirma tu correo'
+    send_email(usuario.correo, subject, html)
     usuario.save()
     return jsonify({'message': 'Usuario registrado'})
+
+@app.route('/confirmar/<token>', methods=['GET'])
+def confirmar(token):
+    email = auth.confirm_token(token)
+    if email:
+        usuario = Usuario.query.filter_by(correo=email).first()
+        if usuario is not None:
+            usuario.activo = True
+            usuario.update()
+            return jsonify({'message': 'Usuario confirmado'})
+    return jsonify({'message': 'Usuario no encontrado'})
 
 @app.route('/login', methods=['POST'])
 def login():
