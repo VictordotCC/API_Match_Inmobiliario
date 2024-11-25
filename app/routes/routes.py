@@ -61,11 +61,17 @@ def registro():
     clave = data['contrasena']
     usuario.clave = aes.encrypt(clave)
     token = auth.generate_confirmation_token(usuario.correo)
-    confirm_url = url_for('confirmar', token=token, _external=True)
-    html = render_template('templates/confirm_email.html', confirm_url=confirm_url)
+    confirm_url = url_for('main.confirmar', token=token, _external=True)
+    html = render_template('confirm_email.html', confirm_url=confirm_url)
     subject = 'Por favor confirma tu correo'
     send_email(usuario.correo, subject, html)
     usuario.save()
+    #Crear preferencias
+    preferencias = Preferencia()
+    preferencias.id_usuario = usuario.id_usuario
+    hash = aes.encrypt(preferencias.id_usuario)
+    preferencias.id_preferencia = 'MIPF' + hash[0:6]
+    preferencias.save()
     return jsonify({'message': 'Usuario registrado'})
 
 @app.route('/confirmar/<token>', methods=['GET'])
@@ -88,6 +94,8 @@ def login():
     #usuario = Usuario.query.filter_by(correo=correo, clave=clave).first()
     usuario = Usuario.query.filter_by(correo=correo, clave=clave_aes).first()
     if usuario:
+        if not usuario.activo:
+            return jsonify({'message': 'Usuario no confirmado', 'status': 401, 'activo': usuario.activo})
         access_token, refresh_token = auth.create_tokens(usuario.id_usuario)
         expiry = datetime.datetime.fromtimestamp(auth.decode_token(refresh_token)['exp'], datetime.timezone.utc)
         usuario.refresh_token = refresh_token

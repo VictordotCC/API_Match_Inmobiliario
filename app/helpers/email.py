@@ -1,12 +1,14 @@
 from flask_mail import Message
-import app
+from app import mail
+import os
 
 def send_email(to, subject, template):
+    sender = os.environ.get('EMAIL_USER')
     msg = Message(
-        subject,
+        subject=subject,
         recipients=[to],
         html=template,
-        sender=app.config['MAIL_USERNAME']
+        sender= sender
     )
-    app.mail.send(msg)
+    mail.send(msg)
 
