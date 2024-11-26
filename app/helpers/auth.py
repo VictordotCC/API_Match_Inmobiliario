@@ -49,4 +49,20 @@ def confirm_token(token, expiration=3600):
     except:
         return False
     
+def generate_reset_token(email):
+    serializer = URLSafeTimedSerializer(Config.SECRET_KEY)
+    return serializer.dumps(email, salt=Config.SALT)
+
+def verify_reset_token(token):
+    serializer = URLSafeTimedSerializer(Config.SECRET_KEY)
+    try:
+        email = serializer.loads(
+            token,
+            salt=Config.SALT,
+            max_age=300
+        )
+        return email
+    except:
+        return False
+    
     

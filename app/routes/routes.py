@@ -85,6 +85,42 @@ def confirmar(token):
             return jsonify({'message': 'Usuario confirmado'})
     return jsonify({'message': 'Usuario no encontrado'})
 
+@app.route('/recuperar', methods=['GET', 'POST'])
+def recuperar():
+    if request.method == 'GET':
+        correo = request.args.get('correo')
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        print(usuario)
+        if usuario is not None:
+            token = auth.generate_reset_token(correo)
+            html = render_template('reset_email.html', token=token)
+            subject = 'Recuperación de contraseña'
+            send_email(correo, subject, html)
+            return jsonify({'message': 'Correo enviado', 'status': 200}), 200
+        else:
+            return jsonify({'message': 'Usuario no encontrado', 'status': 404}), 404
+    elif request.method == 'POST':
+        data = request.get_json()
+        correo = data['correo']
+        clave = data['contrasena']
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        if usuario:
+            usuario.clave = aes.encrypt(clave)
+            usuario.update()
+            return jsonify({'message': 'Contraseña actualizada', 'status': 200}), 200
+        else:
+            return jsonify({'message': 'Usuario no encontrado', 'status': 404}), 404
+
+@app.route('/verificar_recuperacion', methods=['GET'])
+def verificar_recuperacion():
+    token = request.args.get('token')
+    correo = request.args.get('correo')
+    email = auth.verify_reset_token(token)
+    if email == correo:
+        return jsonify({'message': 'Token válido', 'status':200}), 200
+    else:
+        return jsonify({'message': 'Token inválido'}), 401
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
