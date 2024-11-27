@@ -253,6 +253,7 @@ class Vivienda(db.Model):
     id_comuna = db.Column(db.Integer, db.ForeignKey('comuna.id_comuna'), nullable=False)
     id_ciudad = db.Column(db.Integer, db.ForeignKey('ciudad.id_ciudad'), nullable=False)
     id_region = db.Column(db.Integer, db.ForeignKey('region.id_region'), nullable=False)
+    id_usuario = db.Column(db.String(10), db.ForeignKey('usuario.id_usuario'), nullable=True)
 
     idx_vivienda_id_vecindario = db.Index('idx_vivienda_id_vecindario', id_vecindario)
 

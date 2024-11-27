@@ -4,7 +4,7 @@ from app import  gdf_wgs84
 import requests
 import re
 
-def leer_georef(lat, lon, address):
+def leer_georef(lat, lon, address=None):
     if lat is None or lon is None:
         matches = re.findall(r'\d+', address)
         number = 0

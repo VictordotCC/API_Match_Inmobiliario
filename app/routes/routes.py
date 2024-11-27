@@ -1,4 +1,6 @@
 import json
+import uuid
+import datetime
 
 from flask import Blueprint, jsonify, request, url_for, render_template
 from flask_cors import CORS, cross_origin
@@ -585,10 +587,67 @@ def imagenes():
         imagen.url = data['url']
         imagen.save()
         return jsonify({'message': 'Imagen guardada'})
+    
+#RUTAS DE VENDEDOR
 
-
-
-
+@app.route('/v_viviendas', methods=['GET', 'POST'])
+@jwt_required()
+def v_viviendas():
+    if request.method == 'GET':
+        correo = request.args.get('correo')
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        if usuario is not None:
+            viviendas = Vivienda.query.filter_by(id_usuario=usuario.id_usuario).all()
+            if viviendas is not None:
+                return jsonify([vivienda.serialize() for vivienda in viviendas])
+            else:
+                return jsonify({'message': 'Viviendas no encontradas'})
+        else:
+            return jsonify({'message': 'Usuario no encontrado'})
+    elif request.method == 'POST':
+        #Guardar Vivienda
+        data = request.get_json()['vivienda']
+        print(data)
+        vivienda = Vivienda()
+        #Genera el id de la vivienda
+        cantidad_viviendas = Vivienda.query.count()
+        hexa = format(cantidad_viviendas, 'X').zfill(6)
+        unique_part = str(uuid.uuid4()).replace('-', '')[:8]
+        timestamp = int(datetime.datetime.now().timestamp())
+        id_vivienda = f'MI{unique_part}{timestamp}{hexa}'
+        vivienda.id_vivienda = id_vivienda[:50]
+        #Resto de Propiedades
+        vivienda.area_total = data['area_total'] 
+        vivienda.pisos = data['pisos']
+        vivienda.habitaciones = data['habitaciones']
+        vivienda.precio_uf = data['precio_uf']
+        vivienda.estaciona = data['estaciona']
+        vivienda.bodega = data['bodega']
+        vivienda.antiguedad = data['antiguedad']
+        vivienda.tipo_vivienda = data['tipo_vivienda']
+        vivienda.nombre_propiedad = data['nombre_propiedad']
+        vivienda.descripcion = data['descripcion']
+        vivienda.condicion = data['condicion']
+        vivienda.tipo_operacion = data['tipo_operacion']
+        vivienda.banos = data['banos']
+        vivienda.area_construida = data['area_construida']
+        vivienda.latitud = data['latitud']
+        vivienda.longitud = data['longitud']
+        vivienda.ubicacion = func.ST_GeomFromText(f'POINT({vivienda.longitud} {vivienda.latitud})', 4326)
+        vivienda.tipo_subsidio = data['tipo_subsidio']
+        vivienda.fecha_creacion = datetime.datetime.now(datetime.timezone.utc)
+        vivienda.links_contacto = json.dumps(data['links_contacto']) ##TODO REVISAR
+        #TODO: Obtener vecindario
+        geodata = leer_georef.leer_georef(vivienda.latitud, vivienda.longitud)
+        if geodata is None:
+            return jsonify({'message': 'Error al obtener geodata'})
+        vivienda.id_comuna = geodata['comuna']
+        vivienda.id_ciudad = geodata['ciudad']
+        vivienda.id_region = geodata['region']
+        vivienda.id_usuario = Usuario.query.filter_by(correo=data['correo']).first().id_usuario
+        #vivienda.save()
+        print(vivienda.serialize())
+        return jsonify({'message': 'Vivienda guardada'})
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
