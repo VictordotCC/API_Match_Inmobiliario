@@ -74,6 +74,19 @@ def registro():
     preferencias.save()
     return jsonify({'message': 'Usuario registrado'})
 
+@app.route('/dar-alta', methods=['GET'])
+def dar_alta():
+    correo = request.args.get('correo')
+    usuario = Usuario.query.filter_by(correo=correo).first()
+    if usuario is not None:
+        token = auth.generate_confirmation_token(usuario.correo)
+        confirm_url = url_for('main.confirmar', token=token, _external=True)
+        html = render_template('dar_alta.html', confirm_url=confirm_url)
+        subject = 'Confirma la recuperación de tu cuenta'
+        send_email(usuario.correo, subject, html)
+        return jsonify({'message': 'Correo de confirmación enviado'})
+    return jsonify({'message': 'Usuario no encontrado'})
+
 @app.route('/confirmar/<token>', methods=['GET'])
 def confirmar(token):
     email = auth.confirm_token(token)
