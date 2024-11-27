@@ -87,6 +87,15 @@ def dar_alta():
         return jsonify({'message': 'Correo de confirmación enviado'})
     return jsonify({'message': 'Usuario no encontrado'})
 
+@app.route('/dar-baja', methods=['GET'])
+def dar_baja():
+    correo = request.args.get('correo')
+    usuario = Usuario.query.filter_by(correo=correo).first()
+    if usuario is not None:
+        usuario.activo = False
+        usuario.update()
+        return jsonify({'message': 'Usuario dado de baja'})
+
 @app.route('/confirmar/<token>', methods=['GET'])
 def confirmar(token):
     email = auth.confirm_token(token)
