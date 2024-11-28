@@ -582,10 +582,17 @@ def imagenes():
             return jsonify({'message': 'Imagenes no encontradas'})
     elif request.method == 'POST':
         data = request.get_json()
-        imagen = Imagen()
-        imagen.id_vivienda = data['id_vivienda']
-        imagen.url = data['url']
-        imagen.save()
+        id_vivienda = data['id_vivienda']
+        for img in data['imagenes']:
+            count = Imagen.query.count()    
+            imagen = Imagen()
+            imagen.id_vivienda = id_vivienda
+            imagen.url = str(img)
+            hex = format(count, 'X').zfill(6)
+            unique_part = str(uuid.uuid4()).replace('-', '')[:8]
+            timestamp = int(datetime.datetime.now().timestamp())
+            imagen.id_imagen = f'IMG{imagen.id_vivienda[2:10]}{timestamp}{hex}{unique_part}'
+            imagen.save()
         return jsonify({'message': 'Imagen guardada'})
     
 #RUTAS DE VENDEDOR
@@ -607,7 +614,6 @@ def v_viviendas():
     elif request.method == 'POST':
         #Guardar Vivienda
         data = request.get_json()['vivienda']
-        print(data)
         vivienda = Vivienda()
         #Genera el id de la vivienda
         cantidad_viviendas = Vivienda.query.count()
@@ -636,18 +642,20 @@ def v_viviendas():
         vivienda.ubicacion = func.ST_GeomFromText(f'POINT({vivienda.longitud} {vivienda.latitud})', 4326)
         vivienda.tipo_subsidio = data['tipo_subsidio']
         vivienda.fecha_creacion = datetime.datetime.now(datetime.timezone.utc)
-        vivienda.links_contacto = json.dumps(data['links_contacto']) ##TODO REVISAR
+        vivienda.links_contacto = json.dumps(data['links_contacto'])
         #TODO: Obtener vecindario
         geodata = leer_georef.leer_georef(vivienda.latitud, vivienda.longitud)
         if geodata is None:
             return jsonify({'message': 'Error al obtener geodata'})
-        vivienda.id_comuna = geodata['comuna']
-        vivienda.id_ciudad = geodata['ciudad']
-        vivienda.id_region = geodata['region']
+        id_comuna = Comuna.query.filter_by(nom_comuna=geodata['comuna']).first().id_comuna
+        id_ciudad = Ciudad.query.filter_by(nom_ciudad=geodata['ciudad']).first().id_ciudad
+        id_region = Region.query.filter_by(nombre_region=geodata['region']).first().id_region
+        vivienda.id_comuna = id_comuna
+        vivienda.id_ciudad = id_ciudad
+        vivienda.id_region = id_region
         vivienda.id_usuario = Usuario.query.filter_by(correo=data['correo']).first().id_usuario
-        #vivienda.save()
-        print(vivienda.serialize())
-        return jsonify({'message': 'Vivienda guardada'})
+        vivienda.save()
+        return jsonify({'message': 'Vivienda guardada', 'id_vivienda': vivienda.id_vivienda})
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
