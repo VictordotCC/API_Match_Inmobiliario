@@ -460,7 +460,7 @@ def favoritos():
                 if usuario is None:
                     return jsonify({'message': f'Usuario no encontrado para el correo: {correo}'})
                 
-            favoritos = db.session.query(
+            favoritos_imagenes = db.session.query(
                 Favorito,
                 Vivienda,
                 Imagen,
@@ -474,16 +474,29 @@ def favoritos():
             ).filter(Favorito.id_usuario == usuario.id_usuario
             ).order_by(Favorito.fecha_guardado.desc()).all()
 
-            toreturn = []
+            #Agrupar las imágenes por favorito
+            favoritos_dict = {}
+            for fav, vivienda, imagen, cercania in favoritos_imagenes:
+                if fav.id_favorito not in favoritos_dict:
+                    favoritos_dict[fav.id_favorito] = {
+                        **vivienda.serialize(),
+                        'imagenes': [],
+                        'cercania': cercania,
+                        'id_favorito': fav.id_favorito,
+                        'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
+                    }
+                favoritos_dict[fav.id_favorito]['imagenes'].append(imagen.serialize())
 
-            for fav, vivienda, imagen, cercania in favoritos:
+            toreturn = list(favoritos_dict.values())
+
+            """for fav, vivienda, imagen, cercania in favoritos:
                 toreturn.append({
                     **vivienda.serialize(),
                     'imagenes': [imagen.serialize()],
                     'cercania': cercania,
                     'id_favorito': fav.id_favorito,
                     'fecha_guardado': datetime.datetime.strftime(fav.fecha_guardado, '%d-%m-%Y %H:%M:%S')
-                })
+                })"""
             return jsonify(toreturn), 200
         elif request.method == 'POST':
             fav = Favorito()
@@ -597,20 +610,35 @@ def imagenes():
     
 #RUTAS DE VENDEDOR
 
-@app.route('/v_viviendas', methods=['GET', 'POST'])
+@app.route('/v_viviendas', methods=['GET', 'POST', 'DELETE'])
 @jwt_required()
 def v_viviendas():
     if request.method == 'GET':
         correo = request.args.get('correo')
-        usuario = Usuario.query.filter_by(correo=correo).first()
-        if usuario is not None:
-            viviendas = Vivienda.query.filter_by(id_usuario=usuario.id_usuario).all()
-            if viviendas is not None:
-                return jsonify([vivienda.serialize() for vivienda in viviendas])
-            else:
-                return jsonify({'message': 'Viviendas no encontradas'})
-        else:
-            return jsonify({'message': 'Usuario no encontrado'})
+        id_usuario = Usuario.query.filter_by(correo=correo).first().id_usuario
+        if id_usuario is None:
+            return jsonify({'message': 'Usuario no encontrado'}), 404
+        
+        viviendas_imagenes = db.session.query(
+            Vivienda,
+            Imagen
+        ).filter(
+            Vivienda.id_usuario == id_usuario
+        ).join(Imagen, Imagen.id_vivienda == Vivienda.id_vivienda
+        ).order_by(Vivienda.fecha_creacion.desc()).all()
+
+        # Agrupar las imágenes por vivienda
+        viviendas_dict = {}
+        for vivienda, imagen in viviendas_imagenes:
+            if vivienda.id_vivienda not in viviendas_dict:
+                viviendas_dict[vivienda.id_vivienda] = {
+                    **vivienda.serialize(),
+                    'imagenes': [],
+                    'fecha_creacion': datetime.datetime.strftime(vivienda.fecha_creacion, '%d-%m-%Y %H:%M:%S')
+                }
+            viviendas_dict[vivienda.id_vivienda]['imagenes'].append(imagen.serialize())
+        toreturn = list(viviendas_dict.values())
+        return jsonify(toreturn), 200
     elif request.method == 'POST':
         #Guardar Vivienda
         data = request.get_json()['vivienda']
@@ -656,6 +684,17 @@ def v_viviendas():
         vivienda.id_usuario = Usuario.query.filter_by(correo=data['correo']).first().id_usuario
         vivienda.save()
         return jsonify({'message': 'Vivienda guardada', 'id_vivienda': vivienda.id_vivienda})
+    elif request.method == 'DELETE':
+        data = request.get_json()
+        correo = data['correo']
+        id_vivienda = data['id_vivienda']
+        usuario = Usuario.query.filter_by(correo=correo).first()
+        vivienda = Vivienda.query.filter_by(id_vivienda=id_vivienda, id_usuario=usuario.id_usuario).first()
+        if vivienda is not None:
+            vivienda.delete()
+            return jsonify({'message': 'Vivienda eliminada'})
+        else:
+            return jsonify({'message': 'Vivienda no encontrada'})
 
 #RUTAS DE ADMIN
 #TODO: Implementar tokens de seguridad
