@@ -17,6 +17,7 @@ pycryptodome = "*"
 flask-jwt-extended = "*"
 pyjwt = "*"
 flask-mail = "*"
+firebase-admin = "*"
 
 [dev-packages]
 
