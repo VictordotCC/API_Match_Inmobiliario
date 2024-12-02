@@ -20,7 +20,8 @@ from app.helpers import aes
 from app.helpers import auth
 from app.helpers.email import send_email
 from config import distance_bleed
-
+from app.helpers.notification import send_notification
+from firebase_admin import firestore
 app = Blueprint('main', __name__)
 #CORS(app, resources={r"/*": {"origins": "*"}})
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
@@ -349,6 +350,14 @@ def viviendas():
                 matches.append(match)
         if matches:
             Match.bulk_save(matches)
+            #Enviar notificación
+            #token_usuario = Usuario.query.filter_by(id_usuario=usuario_id).first().token_firebase
+            doc_ref = firestore.client().collection('Users').document(usuario)
+            token = doc_ref.get().to_dict()['token']
+            if token:
+                cantidad_matches = len(matches)
+                send_notification(token, 'Tienes {} nuevos matches'.format(cantidad_matches), 'Revisa tus matches')            
+            #fin apartado notificaciones
         return jsonify({'message': 'Match actualizados '+ str(len(viviendas))})
     
 @app.route('/viviendas_cercanas', methods=['GET'])
@@ -421,7 +430,9 @@ def get_matches():
         if imagen.id_vivienda not in imagenes_dict:
             imagenes_dict[imagen.id_vivienda] = []
         imagenes_dict[imagen.id_vivienda].append(imagen.serialize())
-
+    
+    
+    
     viviendas = [
         {
             **viviendas_dict[match.id_vivienda].serialize(),
@@ -811,3 +822,42 @@ def info_portalinmobiliario(comuna):
     
     return jsonify({'message': f'Informacion de Portal Inmobiliario de {comunaConsulta} importada correctamente'})
 
+
+#Notificaciones de Firebase
+from firebase_admin import firestore
+from app import db_firestore
+# Initialize Firestore DB
+#db_firestore = firestore.Client()
+
+@app.route('/save-token', methods=['POST'])
+@jwt_required()
+def save_token():
+    data = request.get_json()
+    token = data.get('token')
+    correon = data.get('correo')
+    if not token:
+        return jsonify({'message': 'Token is missing'}), 400    
+    usuario = Usuario.query.filter_by(correo=correon).first()
+    if usuario is None:
+        return jsonify({'message': 'Usuario no encontrado'}), 404
+
+    # Guardar el token en Firestore
+    doc_ref = db_firestore.collection('Users').document(correon)
+    doc_ref.set({
+        'token': token
+    }, merge=True)
+
+    return jsonify({'message': 'Token saved successfully'}), 200
+
+@app.route('/test-token', methods=['GET'])
+def test_token():
+    #data = request.get_json()
+    #token = data.get('token')
+    token = "d9R-ms4gQMaPQfbnbNVMnx:APA91bGZhUBasX01V8n-I4RWCkB5M_n0gaoWebK-oJ0JYbRyKKd9dDZcfYbjhRLMcJ93WiRYjc0ne0_OAMNc02J7zZYAvujLr_xTI9es8XmIwaERSOHfAWE"
+    if not token:
+        return jsonify({'message': 'Token is missing'}), 400
+
+    # Enviar una notificación
+    send_notification(token, 'Test', 'This is a test notification')
+
+    return jsonify({'message': 'Notification sent'}), 200

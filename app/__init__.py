@@ -4,9 +4,10 @@ from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
-
+from app.helpers.notification import send_notification
 from config import DevConfig, TestConfig, ProdConfig
-
+import firebase_admin
+from firebase_admin import credentials, firestore
 import geopandas as gpd
 
 global gdf
@@ -16,7 +17,7 @@ gdf_wgs84 = gdf.to_crs(epsg=4326)
 db = SQLAlchemy()
 migrate = Migrate()
 mail = Mail()
-
+db_firestore = firestore.client() #para guaradar el token de firebase
 config = {
     'dev': DevConfig,
     'test': TestConfig,
@@ -35,6 +36,7 @@ def create_app():
     migrate.init_app(app, db)
 
     from app.routes import routes
-    app.register_blueprint(routes.app)
+    app.register_blueprint(routes.app)    
+    
 
     return app
