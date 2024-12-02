@@ -5,3 +5,4 @@ obtaintoken.py
 .env copy
 json
 orden
+firebase.json

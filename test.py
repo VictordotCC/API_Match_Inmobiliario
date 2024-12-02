@@ -5,5 +5,5 @@ import json
 
 dotenv.load_dotenv()
 
-credentials = credentials.Certificate(json.loads(os.environ.get('FIREBASE_KEY')))
+cred = credentials.Certificate(json.loads(os.environ.get('FIREBASE_KEY')))
 

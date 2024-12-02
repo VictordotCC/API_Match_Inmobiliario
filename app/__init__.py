@@ -9,6 +9,8 @@ from config import DevConfig, TestConfig, ProdConfig
 import firebase_admin
 from firebase_admin import credentials, firestore
 import geopandas as gpd
+import json
+import os
 
 global gdf
 gdf = gpd.read_file('app/helpers/shapefiles/comunas.shp')
@@ -17,7 +19,6 @@ gdf_wgs84 = gdf.to_crs(epsg=4326)
 db = SQLAlchemy()
 migrate = Migrate()
 mail = Mail()
-db_firestore = firestore.client() #para guaradar el token de firebase
 config = {
     'dev': DevConfig,
     'test': TestConfig,
@@ -34,6 +35,10 @@ def create_app():
     jwt = JWTManager(app)
     db.init_app(app)
     migrate.init_app(app, db)
+
+    if not firebase_admin._apps:
+        cred = credentials.Certificate('/etc/secrets/firebase.json')
+        firebase_admin.initialize_app(cred)
 
     from app.routes import routes
     app.register_blueprint(routes.app)    

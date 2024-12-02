@@ -825,7 +825,7 @@ def info_portalinmobiliario(comuna):
 
 #Notificaciones de Firebase
 from firebase_admin import firestore
-from app import db_firestore
+db_firestore = firestore.client()
 # Initialize Firestore DB
 #db_firestore = firestore.Client()
 
