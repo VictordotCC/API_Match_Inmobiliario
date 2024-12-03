@@ -851,9 +851,8 @@ def save_token():
 
 @app.route('/test-token', methods=['GET'])
 def test_token():
-    #data = request.get_json()
-    #token = data.get('token')
-    token = "d9R-ms4gQMaPQfbnbNVMnx:APA91bGZhUBasX01V8n-I4RWCkB5M_n0gaoWebK-oJ0JYbRyKKd9dDZcfYbjhRLMcJ93WiRYjc0ne0_OAMNc02J7zZYAvujLr_xTI9es8XmIwaERSOHfAWE"
+    data = request.get_json()
+    token = data.get('token')    
     if not token:
         return jsonify({'message': 'Token is missing'}), 400
 
