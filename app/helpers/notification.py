@@ -5,8 +5,13 @@ from firebase_admin import messaging
 def send_notification(token, title, body):
     message = messaging.Message(
         notification=messaging.Notification(
-            title=title, body=body, image=None),
-        token=token        
+            title=title, body=body, image='resources/Match.png'),
+        token=token,
+        webpush=messaging.WebpushConfig(
+            notification=messaging.WebpushNotification(
+                icon='resources/Match.png'
+            )
+        )
     )
     response = messaging.send(message)
     print('Successfully sent notification message:', response)

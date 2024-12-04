@@ -37,7 +37,8 @@ def create_app():
     migrate.init_app(app, db)
 
     if not firebase_admin._apps:
-        cred = credentials.Certificate('/etc/secrets/firebase.json')
+        #cred = credentials.Certificate('/etc/secrets/firebase.json')
+        cred = credentials.Certificate('firebase.json')
         firebase_admin.initialize_app(cred)
 
     from app.routes import routes
