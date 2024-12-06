@@ -18,6 +18,7 @@ flask-jwt-extended = "*"
 pyjwt = "*"
 flask-mail = "*"
 firebase-admin = "*"
+flask-limiter = "*"
 
 [dev-packages]
 
