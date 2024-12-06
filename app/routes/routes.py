@@ -5,8 +5,7 @@ import datetime
 from flask import Blueprint, jsonify, request, url_for, render_template
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+
 
 from geoalchemy2 import Geography
 from geoalchemy2 import functions as func
@@ -24,10 +23,10 @@ from app.helpers.email import send_email
 from config import distance_bleed
 from app.helpers.notification import send_notification
 from firebase_admin import firestore
+from app import limiter
 app = Blueprint('main', __name__)
 
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
-limiter = Limiter(get_remote_address, app=app, default_limits=["100 per minute"])
 
 @app.after_request
 def afer_request(response):

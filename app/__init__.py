@@ -4,6 +4,8 @@ from flask_migrate import Migrate
 from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from app.helpers.notification import send_notification
 from config import DevConfig, TestConfig, ProdConfig
 import firebase_admin
@@ -19,6 +21,7 @@ gdf_wgs84 = gdf.to_crs(epsg=4326)
 db = SQLAlchemy()
 migrate = Migrate()
 mail = Mail()
+limiter = Limiter(get_remote_address, default_limits=["100 per minute"])
 config = {
     'dev': DevConfig,
     'test': TestConfig,
@@ -28,9 +31,11 @@ config = {
 def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"/*": {"origins": "*"}})
+    
 
     app.config.from_object(config['dev'])
     mail.init_app(app)
+    limiter.init_app(app)
     
     jwt = JWTManager(app)
     db.init_app(app)
